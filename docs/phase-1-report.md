@@ -1,0 +1,34 @@
+# Phase 0 and Phase 1 handover
+
+Completed 3 October 2026. **Stopped before Phase 2.** This is the public-site foundation, not a completed production Career Services platform.
+
+1. **Inspection:** Reviewed the owner-supplied HTML and complete local smart-leadership reference, including CSS, scripts, assets and footer. Inspected the home workspace and existing sibling `ksitm` package without modifying that project. Confirmed Node 24.11.0, npm 11.19.1 and Git 2.53.0. Verified Next.js 16.3.8 against npm's current stable release. No applicable root AGENTS.md was found.
+2. **Created:** New isolated Next.js application, public landing page, seven service-information pages, login/register entry pages, reusable UI, test suite, project documentation, lockfile and secret-safe ignore rules.
+3. **Project path:** `C:/Users/Jaynova/ksitmcareers-v1`.
+4. **Architecture:** App Router, TypeScript strict mode, `src/`, `@/*`, Server Components by default; focused client components for browser interaction. Public content types and reference data are separated from presentation. No empty speculative feature folders or database layers.
+5. **Packages:** Next.js 16.3.8 and React/React DOM 19.2.8 from the official scaffold; TypeScript 5.9.3 and type definitions; Tailwind/PostCSS 4.3.3; ESLint 9.39.5 and matching Next config. Playwright 1.63.0 and axe 4.13.0 verify browser behaviour/accessibility. Prettier 3.9.9 standardises formatting. No UI framework, animation library, icon package, ORM or authentication package was added.
+6. **Components:** Brand, SiteHeader, SiteFooter, Hero, Services, Gallery, Leadership/LeadershipCard, Updates, Training, Contact, PortalEntry, ContentImage, Icon and SectionHeading.
+7. **Assets/content preserved:** Shield, all three hero images, all eight gallery images, both leader photographs, names/titles and full biographies. Preserved fonts, navy/orange/purple palette, address, institution name and guiding philosophy. See `content-provenance.md` for the inventory.
+8. **Improvements:** Consistent KSITM Careers branding and confirmed contact email; responsive typography/spacing; real information links; gallery expansion/modal viewing; independent biography controls; image loading/failure states; resized CDN delivery; metadata; error/not-found UI; basic response security headers. Removed unverified testimonials and unsupported live-AI claims.
+9. **Responsive behaviour:** Tested widths 320, 390, 768, 1024, 1440 and 1920 pixels without horizontal overflow. Mobile disclosure navigation, stacked calls to action, responsive grids, full-width cards at narrow widths. Desktop and Pixel 7 screenshots visually reviewed. Hero motion can be paused and respects reduced-motion preferences.
+10. **Lint:** `npm run lint` passed with zero warnings/errors after fixing one unescaped apostrophe.
+11. **Type check:** `npm run typecheck` passed. Production builds also passed Next.js TypeScript validation.
+12. **Production build:** `npm run build` passed on the final application. Public pages are prerendered; seven service slugs are statically generated. No production deployment was performed.
+13. **Problems:** Initial shell access stalled in the prior turn; recovered on retry. npm/network and Windows project writes required sandbox escalation. The Browser connector had no sessions, so tests used installed Chrome with Playwright. Original-image optimisation timed out; the Cloudinary loader resolved this and preserved source URLs. Unknown service URLs initially returned a streamed HTTP 200; `dynamicParams = false` now returns tested HTTP 404. Next.js 16.3.8 emits an internal `NoFallbackError` diagnostic for this deliberately invalid-slug test; users still receive the correct 404 page/status, with no stack trace. The dependency audit has five high entries in the development-only lint chain; no compatible patched release was available. Production audit: zero vulnerabilities. See README for the dependency details.
+14. **Assumptions:** The pasted reference controls visual/content choices; the matching local file supplies its missing footer. The master's official email overrides legacy email. Testimonials need approval before publication. Phase 1 content stays static until the approved CMS phase. Opening-soon entry pages are deliberate and do not implement authentication or accept credentials. `.env.example` is empty because this phase requires no variables.
+15. **Information needed later:** Actual social URLs; approved announcements/training videos; testimonial verification if desired; Phase 2 approval and authorised access to the existing Neon project/configuration. No new official facts are needed to review this foundation.
+16. **Next step:** Review Phase 1, then explicitly approve Phase 2. That phase must inspect the existing Neon project, branches, database and preserved data before proposing the relational schema or making changes. Do not create another Neon project.
+
+## Verification evidence
+
+- Full browser suite: **23 passed, 1 intentionally skipped** (mobile-only navigation case excluded from the desktop project).
+- Following the final gallery crop adjustment: both desktop/mobile visual checks passed again; all three hero images, eight gallery images and two portraits loaded.
+- A subsequent screenshot caught transient CDN failures and a weakness in the image test. The test now requires exact asset counts and zero fallback placeholders, so removed/failed images cannot be silently skipped. The stricter desktop/mobile run passed with one worker. External image delivery still depends on Cloudinary availability; visible failure fallbacks are intentional.
+- Verified biography expand/collapse, gallery expansion and dialog keyboard/focus behaviour, mobile menu navigation/Escape, animation pause/reduced motion, seven service pages, HTTP 404, honest entry routes, valid anchors and image failure fallback.
+- Automated axe WCAG A/AA scans passed on home, login, registration and mentorship information pages, in desktop/mobile projects. This is automated coverage plus visual/keyboard review, not a certification or full assistive-technology audit.
+- `npm run format:check` passed.
+- Local screenshots: `artifacts/desktop-hero.png`, `artifacts/desktop-homepage.png`, `artifacts/mobile-hero.png`, `artifacts/mobile-homepage.png`, and desktop/mobile registration-entry images. Generated artifacts are intentionally not committed.
+
+## Explicitly deferred
+
+No database/schema/migrations, Neon changes, credentials, authentication, student records, dashboards, RBAC, consultation workflows, entitlements, CMS administration, resume storage, training playback/progress, mentorship management, employer administration, assessments, AI integration or deployment. These belong to later approved phases and have not been presented as working features.
