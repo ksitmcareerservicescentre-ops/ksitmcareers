@@ -160,7 +160,7 @@ export default async function StudentDashboardPage() {
             <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-3">
               <Link
                 href="/services/consultations"
-                className="py-3 px-6 rounded-xl bg-[#FF7F24] text-[#0A0A1A] font-extrabold text-sm hover:bg-white transition-all text-center shadow-lg shadow-[#FF7F24]/20 flex items-center justify-center gap-2"
+                className="py-3 px-6 rounded-xl bg-[#FF7F24] text-[#0A0A1A] font-extrabold text-sm hover:bg-[#40297B] hover:text-white transition-all text-center shadow-lg shadow-[#FF7F24]/20 flex items-center justify-center gap-2"
               >
                 <i className="fas fa-calendar-check" aria-hidden="true"></i>
                 <span>Request Consultation</span>

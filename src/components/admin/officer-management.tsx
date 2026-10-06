@@ -60,7 +60,7 @@ export function OfficerManagement({ initialOfficers }: OfficerManagementProps) {
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-[#FF7F24] text-[#0A0A1A] font-extrabold text-xs sm:text-sm hover:bg-white transition-all shadow-lg shadow-[#FF7F24]/20 flex items-center justify-center gap-2 cursor-pointer shrink-0"
+          className="px-4 py-2.5 rounded-xl bg-[#FF7F24] text-[#0A0A1A] font-extrabold text-xs sm:text-sm hover:bg-[#40297B] hover:text-white transition-all shadow-lg shadow-[#FF7F24]/20 flex items-center justify-center gap-2 cursor-pointer shrink-0"
         >
           <i className="fas fa-user-plus" aria-hidden="true"></i>
           <span>Add Career Officer</span>
@@ -308,7 +308,7 @@ export function OfficerManagement({ initialOfficers }: OfficerManagementProps) {
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-5 py-2.5 rounded-xl bg-[#FF7F24] text-[#0A0A1A] text-xs font-extrabold hover:bg-white transition-all shadow-lg shadow-[#FF7F24]/20 disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-[#FF7F24] text-[#0A0A1A] text-xs font-extrabold hover:bg-[#40297B] hover:text-white transition-all shadow-lg shadow-[#FF7F24]/20 disabled:opacity-50 cursor-pointer"
                 >
                   {isPending ? "Creating..." : "Create Career Officer"}
                 </button>

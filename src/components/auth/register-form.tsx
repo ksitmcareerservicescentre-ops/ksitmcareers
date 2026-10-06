@@ -322,7 +322,7 @@ export function RegisterForm() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full py-4 px-4 rounded-xl bg-gradient-to-r from-[#FF7F24] to-[#f56505] text-[#0A0A1A] font-extrabold text-sm hover:brightness-110 active:scale-[0.99] transition-all duration-200 shadow-lg shadow-[#FF7F24]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-4 px-4 rounded-xl bg-[#FF7F24] text-[#0A0A1A] font-extrabold text-sm hover:bg-[#40297B] hover:text-white active:scale-[0.99] transition-all duration-200 shadow-lg shadow-[#FF7F24]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending ? (
               <>

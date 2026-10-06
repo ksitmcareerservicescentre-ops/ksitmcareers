@@ -18,7 +18,7 @@ export function Training() {
           </p>
           <a
             href="#services"
-            className="inline-flex mt-8 px-7 py-3 rounded-full bg-[#FF7F24] text-[#0A0A1A] font-bold hover:bg-white transition-colors"
+            className="inline-flex mt-8 px-7 py-3 rounded-full bg-[#FF7F24] text-[#0A0A1A] font-bold hover:bg-[#40297B] hover:text-white transition-colors"
           >
             Explore Services
           </a>

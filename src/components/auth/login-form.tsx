@@ -14,11 +14,6 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const fillSample = (user: string) => {
-    setIdentifier(user);
-    setPassword("12345678");
-  };
-
   return (
     <div className="w-full max-w-md mx-auto">
       {/* Brand Header */}
@@ -152,7 +147,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full mt-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#FF7F24] to-[#f56505] text-[#0A0A1A] font-extrabold text-sm hover:brightness-110 active:scale-[0.99] transition-all duration-200 shadow-lg shadow-[#FF7F24]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mt-2 py-3.5 px-4 rounded-xl bg-[#FF7F24] text-[#0A0A1A] font-extrabold text-sm hover:bg-[#40297B] hover:text-white active:scale-[0.99] transition-all duration-200 shadow-lg shadow-[#FF7F24]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending ? (
               <>
@@ -170,52 +165,6 @@ export function LoginForm() {
             )}
           </button>
         </form>
-
-        {/* Quick Sample Accounts Picker */}
-        <div className="mt-6 pt-5 border-t border-white/10">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2.5 flex items-center justify-between">
-            <span>Quick Test Accounts</span>
-            <span className="text-[#FF7F24] font-mono lowercase text-[10px]">
-              pass: 12345678
-            </span>
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => fillSample("superadmin")}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-left transition-colors cursor-pointer group"
-            >
-              <div className="text-[10px] text-purple-300 font-bold">Admin</div>
-              <div className="text-xs font-mono text-white group-hover:text-[#FF7F24] truncate">
-                superadmin
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillSample("careerofficer1")}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-left transition-colors cursor-pointer group"
-            >
-              <div className="text-[10px] text-amber-300 font-bold">
-                Officer 1
-              </div>
-              <div className="text-xs font-mono text-white group-hover:text-[#FF7F24] truncate">
-                careerofficer1
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillSample("student1")}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-left transition-colors cursor-pointer group"
-            >
-              <div className="text-[10px] text-emerald-400 font-bold">
-                Student 1
-              </div>
-              <div className="text-xs font-mono text-white group-hover:text-[#FF7F24] truncate">
-                student1
-              </div>
-            </button>
-          </div>
-        </div>
 
         {/* Register Prompt */}
         <div className="mt-8 pt-6 border-t border-white/10 text-center">

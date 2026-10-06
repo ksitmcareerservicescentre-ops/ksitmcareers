@@ -36,7 +36,7 @@ export function SiteHeader() {
     <>
       <header
         id="header"
-        className="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
+        className="fixed top-0 left-0 right-0 z-40 border-b border-white/10 bg-[#0A0A1A]/65 backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.18)] transition-all duration-300"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
