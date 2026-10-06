@@ -137,6 +137,10 @@ export function SiteFooter() {
                 </a>
               </li>
               <li className="flex items-start gap-2">
+                <i className="fas fa-phone text-[#FF7F24] w-6 shrink-0 mt-1" aria-hidden="true"></i>
+                <a href={`tel:${site.phone.replaceAll(" ", "")}`} className="hover:text-[#FF7F24] transition-colors">{site.phone} — {site.phoneContact}</a>
+              </li>
+              <li className="flex items-start gap-2">
                 <i
                   className="fas fa-globe text-[#FF7F24] w-6 shrink-0 mt-1"
                   aria-hidden="true"
@@ -152,6 +156,14 @@ export function SiteFooter() {
               </li>
             </ul>
           </div>
+        </div>
+
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3 border-t border-white/5 pt-8" aria-label="Social media links">
+          <span className="mr-2 text-xs font-bold uppercase tracking-widest text-gray-500">Follow KSITM Careers</span>
+          <a href="https://www.youtube.com/@ksitmcareers" target="_blank" rel="noopener noreferrer" className="rounded-full border border-white/10 px-4 py-2 text-xs font-bold text-gray-300 transition hover:border-[#FF7F24] hover:bg-[#40297B] hover:text-white">YouTube <span className="text-[#FF7F24]">@ksitmcareers</span></a>
+          <a href="https://www.instagram.com/ksitmcarees" target="_blank" rel="noopener noreferrer" className="rounded-full border border-white/10 px-4 py-2 text-xs font-bold text-gray-300 transition hover:border-[#FF7F24] hover:bg-[#40297B] hover:text-white">Instagram <span className="text-[#FF7F24]">@ksitmcarees</span></a>
+          <a href="https://x.com/ksitmcareers" target="_blank" rel="noopener noreferrer" className="rounded-full border border-white/10 px-4 py-2 text-xs font-bold text-gray-300 transition hover:border-[#FF7F24] hover:bg-[#40297B] hover:text-white">X <span className="text-[#FF7F24]">@ksitmcareers</span></a>
+          <a href="https://www.facebook.com/ksitmcareers" target="_blank" rel="noopener noreferrer" className="rounded-full border border-white/10 px-4 py-2 text-xs font-bold text-gray-300 transition hover:border-[#FF7F24] hover:bg-[#40297B] hover:text-white">Facebook <span className="text-[#FF7F24]">@ksitmcareers</span></a>
         </div>
 
         <div className="mt-12 pt-8 border-t border-white/5 text-center text-gray-400 text-sm">

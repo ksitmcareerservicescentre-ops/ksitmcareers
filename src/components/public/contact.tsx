@@ -45,6 +45,13 @@ export function Contact() {
               <a href={site.url}>www.ksitmcareers.edu.ng</a>
             </div>
           </div>
+          <div>
+            <Icon name="phone" />
+            <div>
+              <span>Call Nura Sadiq</span>
+              <a href={`tel:${site.phone.replaceAll(" ", "")}`}>{site.phone}</a>
+            </div>
+          </div>
         </address>
       </div>
     </section>

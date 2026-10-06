@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 const galleryItems = [
   {
@@ -93,7 +94,8 @@ function GalleryItemCard({ item }: { item: (typeof galleryItems)[0] }) {
 }
 
 export function Gallery({ items, fullPage = false }: { items?: PublishedGalleryItem[]; fullPage?: boolean }) {
-  const visibleItems = items && items.length > 0 ? items.map((item) => ({ src: item.imageUrl, alt: item.imageAlt, title: item.title, caption: item.caption })) : galleryItems;
+  const allItems = items && items.length > 0 ? items.map((item) => ({ src: item.imageUrl, alt: item.imageAlt, title: item.title, caption: item.caption })) : galleryItems;
+  const visibleItems = fullPage ? allItems : allItems.slice(0, 9);
   return (
     <section id="gallery" className="py-24 bg-[#101023] scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -107,7 +109,7 @@ export function Gallery({ items, fullPage = false }: { items?: PublishedGalleryI
           <p className="text-gray-400 mt-4 max-w-2xl">
             Explore highlights from the institute and its community.
           </p>
-          {!fullPage && <a href="/gallery" className="mt-5 inline-flex text-sm font-bold text-[#FF7F24] transition-colors hover:text-[#40297B]">See more gallery <i className="fas fa-arrow-right ml-2" aria-hidden="true" /></a>}
+          {!fullPage && <Link href="/gallery" className="mt-5 inline-flex text-sm font-bold text-[#FF7F24] transition-colors hover:text-[#40297B]">See more gallery <i className="fas fa-arrow-right ml-2" aria-hidden="true" /></Link>}
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -21,7 +21,7 @@ export function Leadership({ profiles }: { profiles?: PublishedLeader[] }) {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 items-start">
-          {profiles && profiles.length > 0 ? profiles.map((profile) => <LeadershipCard key={profile.id} id={profile.id} name={profile.name} position={profile.position} image={profile.imageUrl} summary={profile.summary} details={<>{(Array.isArray(profile.biography) ? profile.biography : [profile.biography]).filter(Boolean).map((paragraph, index) => <p key={index}>{String(paragraph)}</p>)}</>} />) : <>
+          {profiles && profiles.length > 0 ? <>{profiles.map((profile) => <LeadershipCard key={profile.id} id={profile.id} name={profile.name} position={profile.position} image={profile.imageUrl} summary={profile.summary} details={<>{(Array.isArray(profile.biography) ? profile.biography : [profile.biography]).filter(Boolean).map((paragraph, index) => <p key={index}>{String(paragraph)}</p>)}</>} />)}<AdditionalLeaders profiles={profiles} /></> : <>
           <LeadershipCard
             id="nura-sadiq"
             name="Nura Sadiq, M.Sc., CPCC"
@@ -85,6 +85,7 @@ export function Leadership({ profiles }: { profiles?: PublishedLeader[] }) {
               </>
             }
           />
+          <AdditionalLeaders />
           </>}
         </div>
 
@@ -99,4 +100,32 @@ export function Leadership({ profiles }: { profiles?: PublishedLeader[] }) {
       </div>
     </section>
   );
+}
+
+function AdditionalLeaders({ profiles = [] }: { profiles?: PublishedLeader[] }) {
+  const has = (name: string) => profiles.some((profile) => profile.name.toLowerCase().includes(name));
+  return <>
+    {!has("bashir sirajo") && <LeadershipCard
+      id="bashir-sirajo"
+      name="Bashir Sirajo"
+      position="Assistant Coordinator, Industry/Employer Relations"
+      image="https://res.cloudinary.com/njlhwruu/image/upload/v1791258916/Gemini_Generated_Image_2sw3ye2sw3ye2sw3.jpg"
+      summary="Academic administrator and professional mentor supporting student development, employer relations and institutional career services."
+      details={<>
+        <p>Bashir Sirajo was born on 2 September 1987 in Danmusa Town, Danmusa Local Government Area of Katsina State. He is an experienced academic administrator and currently serves as Academic Secretary/Senior Assistant Registrar at the Katsina State Institute of Technology and Management (KSITM).</p>
+        <p>He holds a Master of Public Administration (MPA) and has developed professional expertise in academic administration, student affairs, mentoring, coaching, and institutional development. He is a professional member of MCAI, MPMC, and CPCC, reflecting his commitment to continuous professional development.</p>
+        <p>As a Professional Mentor and Coach, Bashir has demonstrated a strong interest in guiding students and young professionals toward personal, academic, and career development. He has also contributed to institutional programmes through presentations and capacity-building activities.</p>
+        <p>Between 2018, 2025, and 2026, he presented papers on general ethics, conduct, rules, and regulations of the Institute during students’ orientation programmes. He has also presented a paper at an International Conference at the University of Douala, Cameroon, and delivered a presentation during a step-down workshop on Career Services, among other professional engagements.</p>
+        <p>In recognition of his dedication and contributions to the Institute, Bashir has received commendations and appreciations from the Management. His professional interests include academic administration, mentoring and coaching, student development, career services, ethics, and institutional management.</p>
+      </>}
+    />}
+    {!has("musa ahmed zayyad") && <LeadershipCard
+      id="musa-ahmed-zayyad"
+      name="Dr. Musa Ahmed Zayyad, MCPN, MNCS"
+      position="Rector, KSITM"
+      image="https://res.cloudinary.com/djkudkxmx/image/upload/v1790703042/Gemini_Generated_Image_wd6fouwd6fouwd6f_unakt3.jpg"
+      summary="Rector of the Katsina State Institute of Technology and Management."
+      details={<p>Biography information will be published here when officially supplied by the Institute.</p>}
+    />}
+  </>;
 }
