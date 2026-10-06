@@ -4,9 +4,9 @@ export const site = {
   centre: "Career Services Centre",
   url: "https://www.ksitmcareers.edu.ng",
   email: "contact@ksitmcareers.edu.ng",
-  phone: "+234 706 314 6952",
+  phone: "09062125845",
   phoneContact: "Nura Sadiq",
-  address: "P.M.B. 2101, Abba Musa Rimi Way, Katsina, Katsina State",
+  address: "Room 1, Ground Floor, Block A, Katsina State Institute of Technology and Management, P.M.B. 2101, Abba Musa Rimi Way, Katsina, Katsina State",
   shield:
     "https://res.cloudinary.com/djkudkxmx/image/upload/v1790374243/KSITM_shield_pfusir.png",
 } as const;

@@ -39,13 +39,13 @@ export function LeadershipCard({
       }`}
     >
       <div className="leader-glow"></div>
-      <div className="relative w-full h-[34rem] overflow-hidden bg-[#0A0A1A]">
+      <div className="relative w-full h-[24rem] sm:h-[30rem] lg:h-[34rem] overflow-hidden bg-[#0A0A1A]">
         <Image
           src={image}
           alt={name}
           fill
           sizes="(max-width: 768px) 100vw, 50vw"
-          className="object-contain object-top"
+          className="object-cover object-top sm:object-contain"
         />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0A0A1A] to-transparent z-10"></div>
       </div>
