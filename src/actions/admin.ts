@@ -293,3 +293,30 @@ export async function deleteLandingContentAction(kind: string, id: string): Prom
     return { success: true };
   } catch (error) { console.error("[AdminAction] content delete failed", error); return { error: "Unable to delete this content." }; }
 }
+
+export async function updateTrainingVideoAction(formData: FormData): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const actor = await requireSuperAdmin();
+    const id = String(formData.get("id") || "");
+    const title = String(formData.get("title") || "").trim();
+    const description = String(formData.get("description") || "").trim();
+    const videoUrl = String(formData.get("videoUrl") || "").trim();
+    const instructor = String(formData.get("instructor") || "").trim() || null;
+    const match = videoUrl.match(/(?:youtu\.be\/|[?&]v=|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/);
+    if (!id || !title || !description || !match) return { error: "Title, description and a valid YouTube URL are required." };
+    await db.update(trainingVideos).set({ title, slug: `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${id.slice(0, 6)}`, description, videoUrl, videoId: match[1], instructor, isPublished: formData.get("isPublished") === "on", updatedAt: new Date() }).where(eq(trainingVideos.id, id));
+    await recordAuditLog({ actorId: actor.id, action: "TRAINING_VIDEO_UPDATED", entityType: "training_videos", entityId: id, details: { title } });
+    revalidatePath("/training"); revalidatePath("/admin"); revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) { console.error("[AdminAction] training update failed", error); return { error: "Unable to update training video." }; }
+}
+
+export async function deleteTrainingVideoAction(id: string): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const actor = await requireSuperAdmin();
+    await db.delete(trainingVideos).where(eq(trainingVideos.id, id));
+    await recordAuditLog({ actorId: actor.id, action: "TRAINING_VIDEO_DELETED", entityType: "training_videos", entityId: id });
+    revalidatePath("/training"); revalidatePath("/admin");
+    return { success: true };
+  } catch (error) { console.error("[AdminAction] training delete failed", error); return { error: "Unable to delete training video." }; }
+}

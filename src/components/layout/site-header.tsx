@@ -5,10 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Brand } from "./brand";
 
-export function SiteHeader() {
+type HeaderUser = { name: string; email: string; role: "STUDENT" | "STAFF" | "SUPER_ADMIN" };
+
+export function SiteHeader({ user }: { user: HeaderUser | null }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const displayName = user?.name || "Guest User";
+  const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "G";
+  const accountHref = user?.role === "SUPER_ADMIN" ? "/admin" : user?.role === "STAFF" ? "/staff" : user ? "/dashboard" : "/login";
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -105,7 +110,7 @@ export function SiteHeader() {
                 className="relative cursor-pointer group bg-transparent border-0 p-0 text-left"
               >
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF7F24] to-[#40297B] flex items-center justify-center text-white font-bold text-lg ring-2 ring-[#FF7F24]/30 group-hover:ring-[#FF7F24] transition-all duration-300 hover:scale-105">
-                  <span id="avatarText">G</span>
+                  <span id="avatarText">{initials}</span>
                   <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#40297B] rounded-full border-2 border-[#0A0A1A]"></span>
                 </div>
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF7F24] rounded-full animate-pulse"></div>
@@ -230,14 +235,14 @@ export function SiteHeader() {
           {/* User Info */}
           <div className="py-6 flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#FF7F24] to-[#40297B] flex items-center justify-center text-white text-2xl font-bold">
-              <span id="drawerAvatar">G</span>
+              <span id="drawerAvatar">{initials}</span>
             </div>
             <div>
               <h4 id="drawerName" className="text-white font-semibold text-lg">
-                Guest User
+                {displayName}
               </h4>
               <p id="drawerEmail" className="text-gray-400 text-sm">
-                guest@ksitmcareers.edu.ng
+                {user?.email || "Sign in to access your account"}
               </p>
             </div>
           </div>
@@ -245,24 +250,24 @@ export function SiteHeader() {
           {/* Menu Items */}
           <div className="flex-1 space-y-2">
             <Link
-              href="/login"
+              href={accountHref}
               onClick={() => setDrawerOpen(false)}
               id="loginBtn"
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-300"
             >
               <i className="fas fa-sign-in-alt text-[#FF7F24]"></i>
-              <span>Login</span>
+              <span>{user ? "Open dashboard" : "Login"}</span>
             </Link>
             <Link
-              href="/register"
+              href={user ? accountHref : "/register"}
               onClick={() => setDrawerOpen(false)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-300"
             >
               <i className="fas fa-user-plus text-[#FF7F24]"></i>
-              <span>Create Account</span>
+              <span>{user ? "Account home" : "Create Account"}</span>
             </Link>
             <Link
-              href="/login"
+              href={accountHref}
               onClick={() => setDrawerOpen(false)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-300"
             >
@@ -270,7 +275,7 @@ export function SiteHeader() {
               <span>Profile</span>
             </Link>
             <Link
-              href="/login"
+              href={accountHref}
               onClick={() => setDrawerOpen(false)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-300"
             >
