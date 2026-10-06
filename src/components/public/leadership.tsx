@@ -3,6 +3,14 @@ import { LeadershipCard } from "./leadership-card";
 type PublishedLeader = { id: string; name: string; position: string; imageUrl: string; summary: string; biography: unknown };
 
 export function Leadership({ profiles }: { profiles?: PublishedLeader[] }) {
+  const leadershipOrder = (name: string) => {
+    const value = name.toLowerCase();
+    if (value.includes("musa ahmed zayyad")) return 1;
+    if (value.includes("nura sadiq")) return 2;
+    if (value.includes("abubakar abdu")) return 3;
+    if (value.includes("bashir sirajo")) return 4;
+    return 5;
+  };
   return (
     <section id="leaders" className="py-24 bg-[#0A0A1A] scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -21,12 +29,13 @@ export function Leadership({ profiles }: { profiles?: PublishedLeader[] }) {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 items-start">
-          {profiles && profiles.length > 0 ? <>{profiles.map((profile) => <LeadershipCard key={profile.id} id={profile.id} name={profile.name} position={profile.position} image={profile.imageUrl} summary={profile.summary} details={<>{(Array.isArray(profile.biography) ? profile.biography : [profile.biography]).filter(Boolean).map((paragraph, index) => <p key={index}>{String(paragraph)}</p>)}</>} />)}<AdditionalLeaders profiles={profiles} /></> : <>
+          {profiles && profiles.length > 0 ? <>{profiles.map((profile) => <LeadershipCard key={profile.id} id={profile.id} name={profile.name} position={profile.position} image={profile.imageUrl} summary={profile.summary} order={leadershipOrder(profile.name)} details={<>{(Array.isArray(profile.biography) ? profile.biography : [profile.biography]).filter(Boolean).map((paragraph, index) => <p key={index}>{String(paragraph)}</p>)}</>} />)}<AdditionalLeaders profiles={profiles} /></> : <>
           <LeadershipCard
             id="nura-sadiq"
             name="Nura Sadiq, M.Sc., CPCC"
             position="Career Center Coordinator & Contact Person"
             image="https://res.cloudinary.com/djkudkxmx/image/upload/v1790675993/Gemini_Generated_Image_pndmuepndmuepndm_vjfsu2.jpg"
+            order={2}
             summary="Lecturer II and Coordinator of the Career Services Centre at KSITM, with over a decade of experience in teaching, academic administration and career development."
             details={
               <>
@@ -68,6 +77,7 @@ export function Leadership({ profiles }: { profiles?: PublishedLeader[] }) {
             name="Abubakar Abdu"
             position="Assistant Coordinator, Career Coaching"
             image="https://res.cloudinary.com/djkudkxmx/image/upload/v1790675981/Gemini_Generated_Image_ew9rw7ew9rw7ew9r_qctlmm.jpg"
+            order={3}
             summary="A seasoned accounting professional with expertise in banking, auditing, financial services and corporate reporting."
             details={
               <>
@@ -110,6 +120,7 @@ function AdditionalLeaders({ profiles = [] }: { profiles?: PublishedLeader[] }) 
       name="Bashir Sirajo"
       position="Assistant Coordinator, Industry/Employer Relations"
       image="https://res.cloudinary.com/njlhwruu/image/upload/v1791258916/Gemini_Generated_Image_2sw3ye2sw3ye2sw3.jpg"
+      order={4}
       summary="Academic administrator and professional mentor supporting student development, employer relations and institutional career services."
       details={<>
         <p>Bashir Sirajo was born on 2 September 1987 in Danmusa Town, Danmusa Local Government Area of Katsina State. He is an experienced academic administrator and currently serves as Academic Secretary/Senior Assistant Registrar at the Katsina State Institute of Technology and Management (KSITM).</p>
@@ -124,6 +135,7 @@ function AdditionalLeaders({ profiles = [] }: { profiles?: PublishedLeader[] }) 
       name="Dr. Musa Ahmed Zayyad, MCPN, MNCS"
       position="Rector, KSITM"
       image="https://res.cloudinary.com/djkudkxmx/image/upload/v1790703042/Gemini_Generated_Image_wd6fouwd6fouwd6f_unakt3.jpg"
+      order={1}
       summary="Rector of the Katsina State Institute of Technology and Management."
       details={<p>Biography information will be published here when officially supplied by the Institute.</p>}
     />}

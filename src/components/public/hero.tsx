@@ -95,7 +95,7 @@ export function Hero() {
           </div>
 
           <a
-            href="#services"
+            href="/register"
             className="hero-cta inline-flex items-center gap-3 mt-12 px-8 py-4 rounded-full bg-[#FF7F24] text-[#0A0A1A] font-extrabold shadow-lg shadow-orange-600/25 hover:bg-[#40297B] hover:text-white hover:-translate-y-1 transition-all"
           >
             Start Your Journey Now{" "}

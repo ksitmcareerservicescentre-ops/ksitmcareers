@@ -10,6 +10,7 @@ interface LeadershipCardProps {
   image: string;
   summary: string;
   details: React.ReactNode;
+  order?: number;
 }
 
 export function LeadershipCard({
@@ -19,6 +20,7 @@ export function LeadershipCard({
   image,
   summary,
   details,
+  order,
 }: LeadershipCardProps) {
   const [expanded, setExpanded] = useState(false);
   const slug =
@@ -31,18 +33,19 @@ export function LeadershipCard({
 
   return (
     <article
+      style={order ? { order } : undefined}
       className={`leader-card rounded-3xl border border-white/10 bg-gradient-to-br from-[#40297B]/25 to-[#FF7F24]/10 ${
         expanded ? "is-expanded" : ""
       }`}
     >
       <div className="leader-glow"></div>
-      <div className="relative w-full h-[25rem] overflow-hidden">
+      <div className="relative w-full h-[34rem] overflow-hidden bg-[#0A0A1A]">
         <Image
           src={image}
           alt={name}
           fill
           sizes="(max-width: 768px) 100vw, 50vw"
-          className="object-cover object-top"
+          className="object-contain object-top"
         />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0A0A1A] to-transparent z-10"></div>
       </div>
