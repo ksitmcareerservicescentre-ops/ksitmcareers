@@ -5,6 +5,7 @@ import { Leadership } from "@/components/public/leadership";
 import { Updates } from "@/components/public/updates";
 import { Training } from "@/components/public/training";
 import { Testimonials } from "@/components/public/testimonials";
+import { LaunchEventVideos } from "@/components/public/launch-event-videos";
 import { db } from "@/db";
 import { announcements, galleryItems, leadershipProfiles } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
@@ -25,6 +26,7 @@ export default async function Home() {
       <Leadership profiles={leadership} />
       <Updates announcements={updates} />
       <Training />
+      <LaunchEventVideos />
       <Testimonials />
     </>
   );

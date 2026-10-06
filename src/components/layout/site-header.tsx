@@ -27,7 +27,9 @@ export function SiteHeader() {
   if (
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/staff")
+    pathname.startsWith("/staff") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register")
   ) {
     return null;
   }
@@ -61,7 +63,7 @@ export function SiteHeader() {
                 Services
               </Link>
               <Link
-                href="/#gallery"
+                href="/gallery"
                 className="text-gray-200 hover:text-[#FF7F24] transition-colors"
               >
                 Gallery
@@ -149,7 +151,7 @@ export function SiteHeader() {
               Services
             </Link>
             <Link
-              href="/#gallery"
+              href="/gallery"
               onClick={() => setMobileOpen(false)}
               className="block text-gray-200 hover:text-[#FF7F24] py-2"
             >

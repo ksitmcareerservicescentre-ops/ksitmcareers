@@ -92,7 +92,7 @@ function GalleryItemCard({ item }: { item: (typeof galleryItems)[0] }) {
   );
 }
 
-export function Gallery({ items }: { items?: PublishedGalleryItem[] }) {
+export function Gallery({ items, fullPage = false }: { items?: PublishedGalleryItem[]; fullPage?: boolean }) {
   const visibleItems = items && items.length > 0 ? items.map((item) => ({ src: item.imageUrl, alt: item.imageAlt, title: item.title, caption: item.caption })) : galleryItems;
   return (
     <section id="gallery" className="py-24 bg-[#101023] scroll-mt-20">
@@ -107,6 +107,7 @@ export function Gallery({ items }: { items?: PublishedGalleryItem[] }) {
           <p className="text-gray-400 mt-4 max-w-2xl">
             Explore highlights from the institute and its community.
           </p>
+          {!fullPage && <a href="/gallery" className="mt-5 inline-flex text-sm font-bold text-[#FF7F24] transition-colors hover:text-[#40297B]">See more gallery <i className="fas fa-arrow-right ml-2" aria-hidden="true" /></a>}
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
