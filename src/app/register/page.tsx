@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { RegisterForm } from "@/components/auth/register-form";
 import { getCurrentUser } from "@/lib/auth/session";
 
@@ -21,6 +22,10 @@ export default async function RegisterPage() {
 
   return (
     <main className="min-h-screen bg-[#0A0A1A] py-12 px-4 flex items-center justify-center relative overflow-hidden">
+      <Link href="/" className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 rounded-xl bg-[#FF7F24] px-4 py-2.5 text-sm font-extrabold text-[#0A0A1A] shadow-lg shadow-orange-950/30 transition hover:bg-[#40297B] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7F24]">
+        <i className="fas fa-arrow-left" aria-hidden="true" />
+        Home
+      </Link>
       {/* Background glow effects */}
       <div
         className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[35rem] h-[35rem] rounded-full bg-gradient-to-br from-[#FF7F24]/10 to-[#40297B]/20 blur-3xl pointer-events-none"
