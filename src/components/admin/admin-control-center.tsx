@@ -29,15 +29,15 @@ function ContentForm({ kind, title, fields }: { kind: string; title: string; fie
 export function AdminControlCenter({ appointments, gallery, leadership, announcements, training }: { appointments: Appointment[]; gallery: Gallery[]; leadership: Leader[]; announcements: Announcement[]; training: TrainingVideo[] }) {
   const [active, setActive] = useState("overview");
   const [createSection, setCreateSection] = useState<string | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const nav = [
     ["overview", "fa-chart-line", "Overview"], ["website", "fa-window-maximize", "Landing page"], ["services", "fa-briefcase", "Career services"], ["appointments", "fa-calendar-check", "Appointments"], ["training", "fa-play-circle", "Skills training"], ["assessments", "fa-clipboard-check", "Readiness assessments"], ["opportunities", "fa-laptop-house", "Internships & jobs"], ["employers", "fa-building", "Employer engagement"], ["staff", "fa-user-tie", "Career staff"],
   ];
   const approve = (id: string, attended: boolean) => startTransition(async () => { await markAppointmentAttendanceAction(id, attended); });
-  return <div className="grid gap-6 lg:grid-cols-[230px_1fr]">
-    <aside className="h-fit rounded-2xl border border-white/10 bg-[#101023]/95 p-3 shadow-2xl shadow-black/20 backdrop-blur-xl lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)] lg:overflow-y-auto">
+  return <div className="relative grid gap-6 lg:grid-cols-[230px_1fr]"><button type="button" onClick={() => setMobileNavOpen(true)} className="mb-1 inline-flex w-fit items-center gap-2 rounded-xl bg-[#FF7F24] px-4 py-2.5 text-xs font-extrabold text-[#0A0A1A] lg:hidden"><i className="fas fa-bars" aria-hidden="true" /> Workspace menu</button>{mobileNavOpen && <button type="button" aria-label="Close workspace menu" onClick={() => setMobileNavOpen(false)} className="fixed inset-0 z-40 bg-black/60 lg:hidden" />}<aside className={`${mobileNavOpen ? "translate-x-0" : "-translate-x-[110%]"} fixed left-4 top-24 z-50 w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-[#101023]/95 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl transition-transform duration-300 lg:sticky lg:top-24 lg:z-auto lg:block lg:h-[calc(100vh-7rem)] lg:w-auto lg:translate-x-0 lg:overflow-y-auto`}>
       <p className="px-3 pb-3 text-[10px] font-bold uppercase tracking-[.18em] text-gray-500">Super Admin workspace</p>
-      <nav className="space-y-1">{nav.map(([id, icon, label]) => <button key={id} onClick={() => setActive(id)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${active === id ? "bg-[#FF7F24] text-[#0A0A1A]" : "text-gray-300 hover:bg-[#40297B] hover:text-white"}`}><i className={`fas ${icon} w-4`} />{label}</button>)}</nav>
+      <nav className="space-y-1">{nav.map(([id, icon, label]) => <button key={id} onClick={() => { setActive(id); setMobileNavOpen(false); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${active === id ? "bg-[#FF7F24] text-[#0A0A1A]" : "text-gray-300 hover:bg-[#40297B] hover:text-white"}`}><i className={`fas ${icon} w-4`} />{label}</button>)}</nav>
       <div className="mt-4 border-t border-white/10 pt-4"><Link href="/" className="flex items-center gap-2 px-3 text-xs text-gray-400 hover:text-[#FF7F24]"><i className="fas fa-external-link-alt" /> View public site</Link></div>
     </aside>
     <section className="min-w-0 space-y-5">

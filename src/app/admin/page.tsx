@@ -89,7 +89,7 @@ export default async function SuperAdminDashboardPage() {
   return (
     <div className="min-h-screen bg-[#0A0A1A] text-white">
       {/* Top Admin Header */}
-      <header className="sticky top-0 z-40 bg-[#0A0A1A]/90 backdrop-blur-xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+      <header className="fixed inset-x-0 top-0 z-40 bg-[#0A0A1A]/90 backdrop-blur-xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2.5">
             <span className="w-8 h-8 rounded-lg bg-[#FF7F24]/10 border border-[#FF7F24]/30 text-[#FF7F24] flex items-center justify-center font-bold text-sm">
@@ -125,7 +125,7 @@ export default async function SuperAdminDashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+      <main className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-8 space-y-10">
         <AdminControlCenter appointments={appointmentRows} gallery={gallery} leadership={leadership} announcements={publicAnnouncements} training={training} />
         {/* Metric Cards */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
