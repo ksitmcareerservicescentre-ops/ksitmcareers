@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth/session";
 
-export function Services() {
+export async function Services() {
+  const user = await getCurrentUser();
+  const entryHref = user?.role === "SUPER_ADMIN" ? "/admin" : user?.role === "STAFF" ? "/staff" : user ? "/dashboard" : "/login";
   return (
     <section id="services" className="py-24 bg-[#0A0A1A] relative">
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A1A] via-[#0A0A1A] to-[#0A0A1A]/50 pointer-events-none"></div>
@@ -36,7 +39,7 @@ export function Services() {
                 industry professionals.
               </p>
               <Link
-                href="/services/consultations"
+                href={entryHref}
                 className="inline-flex items-center gap-2 text-[#FF7F24] font-semibold group-hover:gap-3 transition-all"
               >
                 Book Now{" "}
@@ -61,7 +64,7 @@ export function Services() {
                 suggestions and templates.
               </p>
               <Link
-                href="/services/resume"
+                href={entryHref}
                 className="inline-flex items-center gap-2 text-[#40297B] font-semibold group-hover:gap-3 transition-all"
               >
                 Build Resume{" "}
@@ -86,7 +89,7 @@ export function Services() {
                 employability skills.
               </p>
               <Link
-                href="/services/training"
+                href={entryHref}
                 className="inline-flex items-center gap-2 text-[#FF7F24] font-semibold group-hover:gap-3 transition-all"
               >
                 Watch Videos{" "}
@@ -111,7 +114,7 @@ export function Services() {
                 companies worldwide.
               </p>
               <Link
-                href="/services/internships"
+                href={entryHref}
                 className="inline-flex items-center gap-2 text-[#40297B] font-semibold group-hover:gap-3 transition-all"
               >
                 Apply Now{" "}
@@ -136,7 +139,7 @@ export function Services() {
                 exclusive job postings.
               </p>
               <Link
-                href="/services/employers"
+                href={entryHref}
                 className="inline-flex items-center gap-2 text-[#FF7F24] font-semibold group-hover:gap-3 transition-all"
               >
                 Connect{" "}
@@ -161,7 +164,7 @@ export function Services() {
                 assessments powered by AI.
               </p>
               <Link
-                href="/services/readiness"
+                href={entryHref}
                 className="inline-flex items-center gap-2 text-[#FF7F24] font-semibold group-hover:gap-3 transition-all"
               >
                 Chat with AI{" "}

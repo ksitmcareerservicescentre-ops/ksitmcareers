@@ -36,12 +36,6 @@ const galleryItems = [
     caption: "A further glimpse into the KSITM community.",
   },
   {
-    src: "https://res.cloudinary.com/djkudkxmx/image/upload/v1790675990/Gemini_Generated_Image_8q8pmc8q8pmc8q8p_dsqkay.jpg",
-    alt: "KSITM gallery photo: Shared experiences",
-    title: "Shared experiences",
-    caption: "A further glimpse into the KSITM community.",
-  },
-  {
     src: "https://res.cloudinary.com/djkudkxmx/image/upload/v1790675990/Gemini_Generated_Image_9560vq9560vq9560_avlrqc.jpg",
     alt: "KSITM gallery photo: Shared experiences",
     title: "Shared experiences",
@@ -94,7 +88,7 @@ function GalleryItemCard({ item }: { item: (typeof galleryItems)[0] }) {
 }
 
 export function Gallery({ items, fullPage = false }: { items?: PublishedGalleryItem[]; fullPage?: boolean }) {
-  const allItems = items && items.length > 0 ? items.map((item) => ({ src: item.imageUrl, alt: item.imageAlt, title: item.title, caption: item.caption })) : galleryItems;
+  const allItems = (items && items.length > 0 ? items.map((item) => ({ src: item.imageUrl, alt: item.imageAlt, title: item.title, caption: item.caption })) : galleryItems).filter((item) => !item.src.includes("8q8pmc8q8pmc8q8p"));
   const visibleItems = fullPage ? allItems : allItems.slice(0, 9);
   return (
     <section id="gallery" className="py-24 bg-[#101023] scroll-mt-20">
