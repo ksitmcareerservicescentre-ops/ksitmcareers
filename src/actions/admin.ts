@@ -1,5 +1,6 @@
 "use server";
 
+import { parseTrainingMedia } from "@/lib/training-media";
 import { revalidatePath } from "next/cache";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -26,6 +27,7 @@ export interface OfficerActionResult {
   error?: string;
   fieldErrors?: Record<string, string>;
 }
+
 
 export async function createCareerOfficerAction(
   _prevState: OfficerActionResult | null,
@@ -202,11 +204,11 @@ export async function createLandingContentAction(
       let [category] = await db.select({ id: trainingCategories.id }).from(trainingCategories).where(eq(trainingCategories.slug, categorySlug)).limit(1);
       if (!category) [category] = await db.insert(trainingCategories).values({ name: categoryName, slug: categorySlug }).returning({ id: trainingCategories.id });
       const videoUrl = text("videoUrl");
-      const match = videoUrl.match(/(?:youtu\.be\/|[?&]v=|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/);
-      if (!match) return { error: "Enter a valid YouTube URL." };
-      await db.insert(trainingVideos).values({ categoryId: category.id, title: text("title"), slug: text("title").toLowerCase().replace(/[^a-z0-9]+/g, "-"), description: text("description"), videoUrl, videoId: match[1], instructor: text("instructor") || null, isPublished: formData.get("isPublished") === "on" });
+      const media = parseTrainingMedia(videoUrl);
+      if (!media) return { error: "Enter a valid HTTPS YouTube or direct video URL." };
+      await db.insert(trainingVideos).values({ categoryId: category.id, title: text("title"), slug: text("title").toLowerCase().replace(/[^a-z0-9]+/g, "-"), description: text("description"), videoProvider: media.provider, videoUrl, videoId: media.id, thumbnailUrl: text("thumbnailUrl") || null, instructor: text("instructor") || null, isPublished: formData.get("isPublished") === "on" });
     } else return { error: "Unsupported content type." };
-    revalidatePath("/"); revalidatePath("/admin");
+    revalidatePath("/"); revalidatePath("/admin"); revalidatePath("/training"); revalidatePath("/training/preview");
     return { success: true };
   } catch (error) {
     console.error("[AdminAction] content create failed", error);
@@ -276,7 +278,7 @@ export async function updateLandingContentAction(formData: FormData): Promise<{ 
       await db.update(announcements).set({ title: text("title"), summary: text("summary"), content: text("content"), imageUrl: text("imageUrl") || null, isPublished: published, publishedAt: published ? new Date() : null }).where(eq(announcements.id, id));
     } else return { error: "Unsupported content type." };
     await recordAuditLog({ actorId: actor.id, action: "PUBLIC_CONTENT_UPDATED", entityType: kind, entityId: id, details: { title: text("title") } });
-    revalidatePath("/"); revalidatePath("/admin");
+    revalidatePath("/"); revalidatePath("/admin"); revalidatePath("/training"); revalidatePath("/training/preview");
     return { success: true };
   } catch (error) { console.error("[AdminAction] content update failed", error); return { error: "Unable to update this content." }; }
 }
@@ -289,7 +291,7 @@ export async function deleteLandingContentAction(kind: string, id: string): Prom
     else if (kind === "announcement") await db.delete(announcements).where(eq(announcements.id, id));
     else return { error: "Unsupported content type." };
     await recordAuditLog({ actorId: actor.id, action: "PUBLIC_CONTENT_DELETED", entityType: kind, entityId: id });
-    revalidatePath("/"); revalidatePath("/admin");
+    revalidatePath("/"); revalidatePath("/admin"); revalidatePath("/training"); revalidatePath("/training/preview");
     return { success: true };
   } catch (error) { console.error("[AdminAction] content delete failed", error); return { error: "Unable to delete this content." }; }
 }
@@ -302,11 +304,11 @@ export async function updateTrainingVideoAction(formData: FormData): Promise<{ s
     const description = String(formData.get("description") || "").trim();
     const videoUrl = String(formData.get("videoUrl") || "").trim();
     const instructor = String(formData.get("instructor") || "").trim() || null;
-    const match = videoUrl.match(/(?:youtu\.be\/|[?&]v=|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/);
-    if (!id || !title || !description || !match) return { error: "Title, description and a valid YouTube URL are required." };
-    await db.update(trainingVideos).set({ title, slug: `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${id.slice(0, 6)}`, description, videoUrl, videoId: match[1], instructor, isPublished: formData.get("isPublished") === "on", updatedAt: new Date() }).where(eq(trainingVideos.id, id));
+    const media = parseTrainingMedia(videoUrl);
+    if (!id || !title || !description || !media) return { error: "Title, description and a valid HTTPS video URL are required." };
+    await db.update(trainingVideos).set({ title, slug: `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${id.slice(0, 6)}`, description, videoUrl, videoProvider: media.provider, videoId: media.id, thumbnailUrl: String(formData.get("thumbnailUrl") || "").trim() || null, instructor, isPublished: formData.get("isPublished") === "on", updatedAt: new Date() }).where(eq(trainingVideos.id, id));
     await recordAuditLog({ actorId: actor.id, action: "TRAINING_VIDEO_UPDATED", entityType: "training_videos", entityId: id, details: { title } });
-    revalidatePath("/training"); revalidatePath("/admin"); revalidatePath("/dashboard");
+    revalidatePath("/training/preview"); revalidatePath("/training"); revalidatePath("/admin"); revalidatePath("/dashboard");
     return { success: true };
   } catch (error) { console.error("[AdminAction] training update failed", error); return { error: "Unable to update training video." }; }
 }
@@ -316,7 +318,7 @@ export async function deleteTrainingVideoAction(id: string): Promise<{ success?:
     const actor = await requireSuperAdmin();
     await db.delete(trainingVideos).where(eq(trainingVideos.id, id));
     await recordAuditLog({ actorId: actor.id, action: "TRAINING_VIDEO_DELETED", entityType: "training_videos", entityId: id });
-    revalidatePath("/training"); revalidatePath("/admin");
+    revalidatePath("/training/preview"); revalidatePath("/training"); revalidatePath("/admin");
     return { success: true };
   } catch (error) { console.error("[AdminAction] training delete failed", error); return { error: "Unable to delete training video." }; }
 }

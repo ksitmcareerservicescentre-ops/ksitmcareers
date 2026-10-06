@@ -84,7 +84,7 @@ export default async function SuperAdminDashboardPage() {
     db.select().from(leadershipProfiles).orderBy(leadershipProfiles.displayOrder, desc(leadershipProfiles.createdAt)),
     db.select().from(announcements).orderBy(desc(announcements.createdAt)),
   ]);
-  const training = await db.select({ id: trainingVideos.id, title: trainingVideos.title, description: trainingVideos.description, videoUrl: trainingVideos.videoUrl, videoId: trainingVideos.videoId, instructor: trainingVideos.instructor, isPublished: trainingVideos.isPublished, categoryName: trainingCategories.name }).from(trainingVideos).innerJoin(trainingCategories, eq(trainingVideos.categoryId, trainingCategories.id)).orderBy(trainingVideos.displayOrder, desc(trainingVideos.createdAt));
+  const training = await db.select({ id: trainingVideos.id, title: trainingVideos.title, description: trainingVideos.description, videoUrl: trainingVideos.videoUrl, videoId: trainingVideos.videoId, videoProvider: trainingVideos.videoProvider, thumbnailUrl: trainingVideos.thumbnailUrl, instructor: trainingVideos.instructor, isPublished: trainingVideos.isPublished, categoryName: trainingCategories.name }).from(trainingVideos).innerJoin(trainingCategories, eq(trainingVideos.categoryId, trainingCategories.id)).orderBy(trainingVideos.displayOrder, desc(trainingVideos.createdAt));
 
   return (
     <div className="min-h-screen bg-[#0A0A1A] text-white">
@@ -125,7 +125,7 @@ export default async function SuperAdminDashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-8 space-y-10">
+      <main className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pt-36 pb-8 space-y-10">
         <AdminControlCenter appointments={appointmentRows} gallery={gallery} leadership={leadership} announcements={publicAnnouncements} training={training} />
         {/* Metric Cards */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
