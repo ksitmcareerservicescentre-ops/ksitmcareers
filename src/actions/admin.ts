@@ -214,6 +214,37 @@ export async function createLandingContentAction(
   }
 }
 
+export async function bulkImportGalleryAction(
+  _prevState: { success?: boolean; message?: string; error?: string } | null,
+  formData: FormData,
+): Promise<{ success?: boolean; message?: string; error?: string }> {
+  try {
+    const actor = await requireSuperAdmin();
+    const payload = String(formData.get("payload") || "");
+    const parsed = JSON.parse(payload);
+    if (!Array.isArray(parsed) || parsed.length === 0) return { error: "Upload a non-empty Cloudinary asset JSON file." };
+    const assets = parsed.filter((asset) => typeof asset?.url === "string" && /^https:\/\/res\.cloudinary\.com\//.test(asset.url)).slice(0, 500);
+    if (!assets.length) return { error: "No valid Cloudinary image URLs were found." };
+    const existing = await db.select({ imageUrl: galleryItems.imageUrl }).from(galleryItems);
+    const existingUrls = new Set(existing.map((item) => item.imageUrl));
+    const values = assets.filter((asset) => !existingUrls.has(asset.url)).map((asset, index) => ({
+      title: "KSITM Career Services Centre",
+      caption: "A moment from the KSITM Career Services Centre community.",
+      imageUrl: asset.url,
+      imageAlt: "KSITM Career Services Centre gallery image",
+      displayOrder: index,
+      isPublished: true,
+    }));
+    if (values.length) await db.insert(galleryItems).values(values);
+    await recordAuditLog({ actorId: actor.id, action: "GALLERY_BULK_IMPORTED", entityType: "gallery_items", entityId: "bulk", details: { received: assets.length, inserted: values.length } });
+    revalidatePath("/"); revalidatePath("/gallery"); revalidatePath("/admin");
+    return { success: true, message: `Imported ${values.length} new gallery images. ${assets.length - values.length} duplicates were skipped.` };
+  } catch (error) {
+    console.error("[AdminAction] gallery bulk import failed", error);
+    return { error: "Unable to import gallery assets. Ensure the uploaded file is valid JSON." };
+  }
+}
+
 export async function markAppointmentAttendanceAction(appointmentId: string, attended: boolean) {
   try {
     const actor = await requireSuperAdmin();
