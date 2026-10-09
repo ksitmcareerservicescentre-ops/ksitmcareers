@@ -27,6 +27,7 @@ Limits: 100 KB JSON, 100 questions, 30 resources, 10,000 characters per answer. 
 ## 2026 Grid Cards & UI Architecture
 
 Both the Super Admin workspace and Student Dashboard implement modern-classic 2026 UI/UX design standards:
+- **Zero Trailing Content**: The main workspace page cleanly concludes immediately after the 8 Grid Cards. No workbench bars, inline forms, or tables clutter the main dashboard view.
 - **Curriculum Modules Grid**: The 8 modules are presented in a responsive 4-column luxury card grid (`grid-cols-1 md:grid-cols-2 lg:grid-cols-4`).
 - **Specific Requirements Displayed on Each Card**:
   - Bespoke category SVG icon in luminous amber container
@@ -39,8 +40,13 @@ Both the Super Admin workspace and Student Dashboard implement modern-classic 20
     * Curated framework resource guides count
     * Estimated duration / time commitment (e.g. `15–20 Mins`)
     * Target outcome / competency goal
+  - **Manage module CTA button** (`Manage module →`) on each card that smoothly invokes the on-demand management drawer.
+- **Slide-over Management Drawer Modal**: Clicking `Manage module` opens a sleek, backdrop-blurred drawer housing:
+  - Top tab switcher (**Module Manager** and **Preview**)
+  - Direct module selector combobox with status indicators
+  - Dual-pane JSON schema editor, live interactive student preview, cohort student search/assignment, and admin assignment tracking records
+  - Clean `Close drawer` trigger that restores the focused grid view
 - **Executive Metrics Strip**: 4 luxury stat cards summarizing Total Curriculum (8 Modules), Live Published count, Draft Templates count, and Core Pedagogical Frameworks.
-- **Active Workspace Focus**: Clicking any card smoothly focuses the workbench on that module with glowing border highlight, glow line, and checkmark badge. A synchronized combobox ensures seamless keyboard accessibility and automated test integration.
 
 ## Assignment records
 

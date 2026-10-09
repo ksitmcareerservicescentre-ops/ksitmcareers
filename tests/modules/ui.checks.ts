@@ -17,6 +17,7 @@ test("manager has an interactive student preview and assignment controls", async
         ),
       });
   await page.addScriptTag({ path: "artifacts/modules-ui.js" });
+  await page.getByRole("button", { name: "Manage module" }).first().click();
   await expect(
     page.getByRole("tab", { name: "Module Manager" }),
   ).toHaveAttribute("aria-selected", "true");
@@ -83,6 +84,7 @@ test("manager has an interactive student preview and assignment controls", async
   await expect(
     page.getByText("No assignments match these filters."),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Close drawer" }).click();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

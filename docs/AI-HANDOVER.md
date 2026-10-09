@@ -81,12 +81,21 @@ Each module includes curated, verified HTTPS educational resources and refined U
 ## 2026 Modern Classic UI & Grid Cards Architecture
 
 The entire Modules ecosystem was elevated to 2026 modern-classic UI/UX design standards:
+- **Zero Trailing Content**: The main admin Modules workspace ends cleanly immediately after the 8 Grid Cards. No workbench bars, inline forms, or tables clutter the bottom of the page.
 - **Responsive 4-Column Grid Cards (`modules-workspace.tsx` & `/dashboard/modules`)**: The 8 modules are displayed in a modern luxury grid of cards. Each card displays:
   * Bespoke category SVG icon in luminous amber frosted box
   * Status chip (Published with glowing emerald dot / Draft Template with amber dot) + version pill
   * Module title, category, and academic framework badge
   * Specific Requirements container detailing prompt counts & required counts, format types, curated resource links count, target outcome, and estimated duration
-  * Active focus state with glowing orange border, glow line, and checkmark indicator
+  * Action button (`Manage module →`) that triggers the slide-over workbench drawer
+- **Slide-over Management Drawer Modal**: Clicking `Manage module →` opens a full-height, backdrop-blurred drawer housing:
+  * Module selector combobox and live status badges
+  * View tabswitcher (**Module Manager** and **Preview**)
+  * Dual-pane JSON schema editor with instant syntax/schema validation
+  * Interactive live student preview
+  * Student search and cohort assignment tool
+  * Filterable, paginated student records table with full response inspect flyouts
+  * Accessible `Close drawer` trigger returning the user to the pristine grid
 - **Executive Metrics Strip**: 4 luxury stat cards summarizing Total Curriculum (8 Modules), Live Published count, Draft Templates count, and Core Pedagogical Frameworks.
 - **Obsidian / Frosted Glass Theme**: Dark glass panels (`border-white/[0.08]`, `bg-[#0c0c1e]/90`, subtle gradient backdrops) with radiant amber and orange glowing action buttons (`shadow-[0_0_24px_rgba(249,115,22,0.35)]`).
 - **Interactive Student Preview & Form (`module-form.tsx`)**: Individual question cards with clean badges, visual proficiency scale hints (`1 (Beginning) → 3 (Competent) → 5 (Advanced)`), and frosted resource links with animated arrow indicators.

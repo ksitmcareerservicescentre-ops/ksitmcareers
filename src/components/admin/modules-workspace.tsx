@@ -91,6 +91,7 @@ export function ModulesWorkspace() {
   const [modules, setModules] = useState<Module[] | null>(null);
   const [selected, setSelected] = useState("");
   const [tab, setTab] = useState("manager");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   useEffect(() => {
@@ -127,31 +128,6 @@ export function ModulesWorkspace() {
             Curate reusable student activities, preview the interactive student workflow, and monitor real-time completion records.
           </p>
         </div>
-      </div>
-      <div
-        role="tablist"
-        aria-label="Modules views"
-        className="inline-flex rounded-2xl border border-white/[0.08] bg-[#0c0c1e]/90 p-1.5 shadow-lg backdrop-blur-xl"
-      >
-        {[
-          ["manager", "Module Manager"],
-          ["preview", "Preview"],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            role="tab"
-            aria-selected={tab === id}
-            aria-controls="modules-view"
-            className={
-              tab === id
-                ? moduleButton
-                : "rounded-xl px-5 py-2.5 text-sm font-semibold text-gray-400 transition-all hover:bg-white/5 hover:text-white"
-            }
-            onClick={() => setTab(id)}
-          >
-            {label}
-          </button>
-        ))}
       </div>
       {error && (
         <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300 backdrop-blur-sm">
@@ -227,22 +203,10 @@ export function ModulesWorkspace() {
                 </p>
               </div>
 
-              {/* Synchronized accessible selector */}
-              <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-300">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-orange-400">Select module</span>
-                <select
-                  aria-label="Select module"
-                  className="bg-transparent text-xs font-medium text-white focus:outline-none"
-                  value={selected}
-                  onChange={(e) => setSelected(e.target.value)}
-                >
-                  {modules.map((item) => (
-                    <option value={item.id} key={item.id} className="bg-[#0c0c1e] text-white">
-                      {item.title} · {item.isPublished ? "Published" : "Draft"}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
+                8 Standardized Modules
+              </span>
             </div>
 
             {/* 8-Card Responsive Grid */}
@@ -336,19 +300,17 @@ export function ModulesWorkspace() {
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between">
-                      {isSelected ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-400">
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                          </svg>
-                          Active Focus
-                        </span>
-                      ) : (
-                        <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors flex items-center gap-1">
-                          Select to manage
-                          <span className="transition-transform group-hover:translate-x-0.5">→</span>
-                        </span>
-                      )}
+                      <button
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 px-3.5 py-1.5 text-xs font-bold text-orange-400 transition-all hover:border-orange-500/60 hover:bg-orange-500/20 active:scale-95"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(item.id);
+                          setDrawerOpen(true);
+                        }}
+                      >
+                        Manage module
+                        <span>→</span>
+                      </button>
                       <span className="text-[10px] uppercase font-bold text-gray-500">
                         {item.slug}
                       </span>
@@ -358,34 +320,60 @@ export function ModulesWorkspace() {
               })}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Active Module Workbench Bar */}
-          {current && (
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-gradient-to-r from-[#14142c] via-[#0f0f24] to-[#0c0c1e] p-5 shadow-xl backdrop-blur-xl">
-              <div className="flex items-center gap-3.5">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-400">
+      {/* Slide-over Management Drawer */}
+      {drawerOpen && current && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Manage ${current.title}`}
+          className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-md transition-all duration-300"
+          onClick={() => setDrawerOpen(false)}
+        >
+          <div
+            className="flex h-full w-full max-w-4xl flex-col border-l border-white/10 bg-[#080816] shadow-2xl overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/10 bg-[#0c0c20]/95 px-6 py-4 backdrop-blur-xl">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-400">
                   {getModuleIcon(current.slug)}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400">
-                      Active Workspace
+                      Module Workbench
                     </span>
                     <span className="text-xs text-gray-500">·</span>
-                    <span className="text-xs text-gray-400 font-mono">v{current.version}</span>
+                    <span className="text-xs font-mono text-gray-400">v{current.version}</span>
                   </div>
-                  <h3 className="text-xl font-extrabold text-white">
+                  <h3 className="text-lg font-bold text-white">
                     {current.title}
                   </h3>
-                  <p className="text-xs text-gray-400">
-                    {getModuleMeta(current.slug).framework}
-                  </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-gray-300">
+                  <span className="sr-only">Select module</span>
+                  <select
+                    aria-label="Select module"
+                    className="bg-transparent text-xs font-medium text-white focus:outline-none"
+                    value={selected}
+                    onChange={(e) => setSelected(e.target.value)}
+                  >
+                    {modules?.map((item) => (
+                      <option value={item.id} key={item.id} className="bg-[#0c0c1e] text-white">
+                        {item.title} · {item.isPublished ? "Published" : "Draft"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
+                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${
                     current.isPublished
                       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
                       : "border-amber-500/30 bg-amber-500/10 text-amber-400"
@@ -393,30 +381,70 @@ export function ModulesWorkspace() {
                 >
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
-                      current.isPublished ? "bg-emerald-400" : "bg-amber-400"
+                      current.isPublished ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-amber-400"
                     }`}
                   />
-                  {current.isPublished ? "Published for Students" : "Draft Template"}
+                  {current.isPublished ? "Published" : "Draft"}
                 </span>
+                <button
+                  onClick={() => setDrawerOpen(false)}
+                  className="rounded-xl border border-white/10 bg-white/5 p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="Close drawer"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             </div>
-          )}
+
+            {/* Tablist inside Drawer */}
+            <div className="border-b border-white/[0.08] bg-[#0c0c20]/60 px-6 py-3">
+              <div
+                role="tablist"
+                aria-label="Modules views"
+                className="inline-flex rounded-xl border border-white/[0.08] bg-black/40 p-1"
+              >
+                {[
+                  ["manager", "Module Manager"],
+                  ["preview", "Preview"],
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    role="tab"
+                    aria-selected={tab === id}
+                    aria-controls="modules-view"
+                    className={
+                      tab === id
+                        ? "rounded-lg bg-orange-500 px-4 py-2 text-xs font-bold text-[#090915] shadow-md transition-all"
+                        : "rounded-lg px-4 py-2 text-xs font-semibold text-gray-400 transition-all hover:text-white"
+                    }
+                    onClick={() => setTab(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Drawer Body with ModuleEditor */}
+            <div className="flex-1 p-6 space-y-6">
+              <div id="modules-view" role="tabpanel">
+                <ModuleEditor
+                  key={current.id}
+                  module={current}
+                  previewOnly={tab === "preview"}
+                  onSave={(next) =>
+                    setModules((items) =>
+                      items!.map((item) => (item.id === next.id ? next : item)),
+                    )
+                  }
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
-      <div id="modules-view" role="tabpanel">
-        {current && (
-          <ModuleEditor
-            key={current.id}
-            module={current}
-            previewOnly={tab === "preview"}
-            onSave={(next) =>
-              setModules((items) =>
-                items!.map((item) => (item.id === next.id ? next : item)),
-              )
-            }
-          />
-        )}
-      </div>
     </div>
   );
 }
