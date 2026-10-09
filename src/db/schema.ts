@@ -9,7 +9,20 @@ import {
   unique,
   uuid,
   index,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import type { ModuleContent, ModuleStatus } from "@/lib/modules";
+
+export const learningModules = pgTable("learning_modules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  content: jsonb("content").$type<ModuleContent>().notNull(),
+  isPublished: boolean("is_published").notNull().default(false),
+  version: integer("version").notNull().default(1),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 // ============================================================
 // 1. CORE IDENTITY, ROLES & SESSIONS
@@ -864,3 +877,27 @@ export const notifications = pgTable(
     index("notifications_read_idx").on(table.isRead),
   ],
 );
+
+// Reusable modules keep a snapshot so later edits never rewrite a student's work.
+export const moduleAssignments = pgTable("module_assignments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  moduleId: uuid("module_id").notNull().references(() => learningModules.id, { onDelete: "restrict" }),
+  studentId: uuid("student_id").notNull().references(() => studentProfiles.id, { onDelete: "cascade" }),
+  assignedBy: uuid("assigned_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  title: text("title").notNull(),
+  content: jsonb("content").$type<ModuleContent>().notNull(),
+  moduleVersion: integer("module_version").notNull(),
+  status: text("status").$type<ModuleStatus>().notNull().default("ASSIGNED"),
+  note: text("note").notNull().default(""),
+  answers: jsonb("answers").$type<Record<string, string>>().notNull().default({}),
+  version: integer("version").notNull().default(1),
+  assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull().defaultNow(),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  unique("module_assignments_student_module_unique").on(t.studentId, t.moduleId),
+  index("module_assignments_module_status_idx").on(t.moduleId, t.status, t.startedAt),
+  index("module_assignments_student_idx").on(t.studentId),
+  check("module_assignment_lifecycle", sql`(${t.status} = 'ASSIGNED' AND ${t.startedAt} IS NULL AND ${t.completedAt} IS NULL) OR (${t.status} = 'IN_PROGRESS' AND ${t.startedAt} IS NOT NULL AND ${t.completedAt} IS NULL) OR (${t.status} = 'COMPLETED' AND ${t.startedAt} IS NOT NULL AND ${t.completedAt} IS NOT NULL AND ${t.completedAt} >= ${t.startedAt})`),
+]);

@@ -17,7 +17,9 @@
     "db:seed": "tsx src/db/seed.ts",
     "db:seed:requested-accounts": "node scripts/seed-requested-accounts.mjs",
     "db:seed:landing-content": "node scripts/seed-landing-content.mjs",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test:modules": "node scripts/test-modules.mjs",
+    "test:modules:ui": "node scripts/test-modules-ui.mjs"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -31,6 +33,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@electric-sql/pglite": "^0.5.8",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -38,6 +41,7 @@
     "@types/react-dom": "^19",
     "dotenv": "^18.0.5",
     "drizzle-kit": "^0.31.11",
+    "esbuild": "^0.25.12",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "prettier": "^3.9.9",

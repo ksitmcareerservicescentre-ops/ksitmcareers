@@ -113,6 +113,7 @@ export default async function StudentDashboardPage() {
       <DashboardHeader student={student} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
+        <Link href="/dashboard/modules" className="block rounded-2xl border border-orange-400/30 bg-[#101023] p-5 text-white"><span className="text-lg font-bold">My Modules</span><span className="mt-2 block text-sm text-gray-400">Start assigned activities, continue your progress and view completed work.</span></Link>
         {/* Welcome Banner */}
         <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#40297B]/40 via-[#101023] to-[#FF7F24]/15 border border-white/10 p-6 sm:p-10">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
