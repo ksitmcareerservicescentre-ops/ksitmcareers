@@ -24,6 +24,24 @@ Each module includes curated, verified HTTPS resources pointing to institutional
 
 Limits: 100 KB JSON, 100 questions, 30 resources, 10,000 characters per answer. Questions support `TEXT`, `MULTIPLE_CHOICE` (2–20 options), and `SCALE_1_5` (with visual proficiency hints).
 
+## 2026 Grid Cards & UI Architecture
+
+Both the Super Admin workspace and Student Dashboard implement modern-classic 2026 UI/UX design standards:
+- **Curriculum Modules Grid**: The 8 modules are presented in a responsive 4-column luxury card grid (`grid-cols-1 md:grid-cols-2 lg:grid-cols-4`).
+- **Specific Requirements Displayed on Each Card**:
+  - Bespoke category SVG icon in luminous amber container
+  - Category pill (e.g., `DIAGNOSTIC CORE`, `SKILL DEVELOPMENT`, `CAREER ASSETS`, `EXPERIENTIAL LEARNING`, `PROFESSIONAL NETWORKING`, `SEARCH & STRATEGY`, `EVENT STRATEGY`, `ADVISORY COACHING`)
+  - Status indicator (Published with glowing emerald dot vs Draft Template with amber dot) and version chip (`v1`, `v2`)
+  - Module title and evidence-based pedagogical framework badge
+  - Specific Requirements container in obsidian frosted glass detailing:
+    * Question prompts count & required count
+    * Question format types (`TEXT`, `MULTIPLE_CHOICE`, `SCALE_1_5`)
+    * Curated framework resource guides count
+    * Estimated duration / time commitment (e.g. `15–20 Mins`)
+    * Target outcome / competency goal
+- **Executive Metrics Strip**: 4 luxury stat cards summarizing Total Curriculum (8 Modules), Live Published count, Draft Templates count, and Core Pedagogical Frameworks.
+- **Active Workspace Focus**: Clicking any card smoothly focuses the workbench on that module with glowing border highlight, glow line, and checkmark badge. A synchronized combobox ensures seamless keyboard accessibility and automated test integration.
+
 ## Assignment records
 
 Assignments are unique per student/module. Duplicate assignment does not reset work. Each assignment snapshots the title, content and module version, and records the assigning administrator and optional note. Editing or unpublishing a definition does not rewrite existing assignments.

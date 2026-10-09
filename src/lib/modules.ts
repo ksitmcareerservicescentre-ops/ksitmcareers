@@ -27,6 +27,145 @@ export const statusLabels: Record<ModuleStatus, string> = {
   COMPLETED: "Completed",
 };
 
+export type ModuleMetadataInfo = {
+  framework: string;
+  category: string;
+  badge: string;
+  description: string;
+  requirements: {
+    prompts: string;
+    format: string;
+    resources: string;
+    outcome: string;
+    estDuration: string;
+  };
+};
+
+export const moduleMetadata: Record<string, ModuleMetadataInfo> = {
+  readiness: {
+    framework: "NACE 8 Competencies & Self-Efficacy",
+    category: "Diagnostic Core",
+    badge: "Readiness Benchmark",
+    description: "Evaluates workplace readiness across 8 employer competencies with diagnostic staging.",
+    requirements: {
+      prompts: "3 Diagnostic Prompts (2 Required)",
+      format: "Text Reflection & 1–5 Scale",
+      resources: "3 Curated Framework Guides",
+      outcome: "Quantified competency baseline & 30-day action plan",
+      estDuration: "15–20 Mins",
+    },
+  },
+  training: {
+    framework: "Kolb Experiential Cycle & STAR Method",
+    category: "Skill Development",
+    badge: "Behavioral Mastery",
+    description: "Scaffolds high-impact workplace challenge narratives using the STAR behavioral framework.",
+    requirements: {
+      prompts: "3 Competency Prompts (1 Required)",
+      format: "Structured STAR Text & Scale",
+      resources: "3 Practical Toolkits & Rubrics",
+      outcome: "Articulated interview behavioral proof points",
+      estDuration: "20–25 Mins",
+    },
+  },
+  resume: {
+    framework: "ATS Compliance & Google XYZ Formula",
+    category: "Career Assets",
+    badge: "ATS Optimized",
+    description: "Crafts recruiter-ready bullet points with measurable impact metrics and ATS keyword alignment.",
+    requirements: {
+      prompts: "3 Drafting Prompts (1 Required)",
+      format: "Target Role Text & XYZ Formula",
+      resources: "3 ATS Checklists & Impact Guides",
+      outcome: "High-converting summary & quantified achievement inventory",
+      estDuration: "25–30 Mins",
+    },
+  },
+  internship: {
+    framework: "TELM Remote Placement (Forage Model)",
+    category: "Experiential Learning",
+    badge: "Industry Simulation",
+    description: "Simulates asynchronous workplace projects with client deliverables and domain tooling.",
+    requirements: {
+      prompts: "3 Placement Prompts (1 Required)",
+      format: "Client Brief Analysis & Tooling Stack",
+      resources: "3 Virtual Placement Guides",
+      outcome: "Demonstrated remote problem-solving & deliverable portfolio",
+      estDuration: "30–45 Mins",
+    },
+  },
+  employers: {
+    framework: "Granovetter Weak Ties & Bolles Model",
+    category: "Professional Networking",
+    badge: "Networking Outreach",
+    description: "Prepares research-driven employer engagement, 30-second pitches, and informational interviews.",
+    requirements: {
+      prompts: "3 Strategic Prompts (1 Required)",
+      format: "Company Target & 30-Sec Pitch Text",
+      resources: "3 Informational Interview Guides",
+      outcome: "Actionable recruiter inquiry roadmap & 24hr follow-up",
+      estDuration: "15–20 Mins",
+    },
+  },
+  jobs: {
+    framework: "Cognitive Information Processing (CIP)",
+    category: "Search & Strategy",
+    badge: "Opportunity Pipeline",
+    description: "Deconstructs employer job postings, extracts core ATS keywords, and maps qualifications.",
+    requirements: {
+      prompts: "3 Pipeline Prompts (1 Required)",
+      format: "Job Posting Deconstruction & Pitch",
+      resources: "3 Search & Tracking Guides",
+      outcome: "Tailored application strategy & multi-stage pipeline",
+      estDuration: "15–20 Mins",
+    },
+  },
+  "career-fair": {
+    framework: "Goffman Impression Mgmt & 3-Phase Model",
+    category: "Event Strategy",
+    badge: "Event Conversion",
+    description: "Maximizes career fair ROI through pre-event research, booth pitches, and rapid follow-up.",
+    requirements: {
+      prompts: "3 Event Prompts (1 Required)",
+      format: "Target Booth Selection & Elevator Pitch",
+      resources: "3 Career Fair Strategy Guides",
+      outcome: "Structured 3-phase fair action plan & recruiter conversion",
+      estDuration: "15–20 Mins",
+    },
+  },
+  appointments: {
+    framework: "Solution-Focused Counseling (SFCC) & SMART",
+    category: "Advisory Coaching",
+    badge: "Targeted Coaching",
+    description: "Prepares high-yield career advising sessions with structured agendas and milestone accountability.",
+    requirements: {
+      prompts: "3 Coaching Prompts (1 Required)",
+      format: "Session Agenda Focus & Materials Prep",
+      resources: "3 Advising Prep Worksheets",
+      outcome: "Focused session intake, adviser alignment & SMART milestones",
+      estDuration: "10–15 Mins",
+    },
+  },
+};
+
+export function getModuleMeta(slug: string): ModuleMetadataInfo {
+  return (
+    moduleMetadata[slug] || {
+      framework: "Career Readiness Framework",
+      category: "Student Activity",
+      badge: "Curriculum Standard",
+      description: "Interactive professional development activity.",
+      requirements: {
+        prompts: "Structured Prompts",
+        format: "Guided Questions",
+        resources: "Curated Resources",
+        outcome: "Verified professional competency",
+        estDuration: "15–20 Mins",
+      },
+    }
+  );
+}
+
 export function parseModuleContent(raw: string): ModuleContent {
   if (raw.length > 100000) throw new Error("Module data must be under 100 KB.");
   let value: unknown;

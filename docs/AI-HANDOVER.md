@@ -78,13 +78,19 @@ The starter templates for all eight modules have been upgraded with evidence-bas
 
 Each module includes curated, verified HTTPS educational resources and refined UI enhancements (proficiency scale helpers, styled resource cards). Both databases (`ksitmcareers` and `neondb`) have been updated with these curricula.
 
-## UI Design Elevation Completed
+## 2026 Modern Classic UI & Grid Cards Architecture
 
-The entire Modules ecosystem was elevated to a modern luxury UI aesthetic:
+The entire Modules ecosystem was elevated to 2026 modern-classic UI/UX design standards:
+- **Responsive 4-Column Grid Cards (`modules-workspace.tsx` & `/dashboard/modules`)**: The 8 modules are displayed in a modern luxury grid of cards. Each card displays:
+  * Bespoke category SVG icon in luminous amber frosted box
+  * Status chip (Published with glowing emerald dot / Draft Template with amber dot) + version pill
+  * Module title, category, and academic framework badge
+  * Specific Requirements container detailing prompt counts & required counts, format types, curated resource links count, target outcome, and estimated duration
+  * Active focus state with glowing orange border, glow line, and checkmark indicator
+- **Executive Metrics Strip**: 4 luxury stat cards summarizing Total Curriculum (8 Modules), Live Published count, Draft Templates count, and Core Pedagogical Frameworks.
 - **Obsidian / Frosted Glass Theme**: Dark glass panels (`border-white/[0.08]`, `bg-[#0c0c1e]/90`, subtle gradient backdrops) with radiant amber and orange glowing action buttons (`shadow-[0_0_24px_rgba(249,115,22,0.35)]`).
 - **Interactive Student Preview & Form (`module-form.tsx`)**: Individual question cards with clean badges, visual proficiency scale hints (`1 (Beginning) → 3 (Competent) → 5 (Advanced)`), and frosted resource links with animated arrow indicators.
-- **Student Dashboard & Activity (`student-module.tsx`, `app/dashboard/modules`)**: Hero headers, glowing status badges (Emerald for Completed, pulsating Orange for In Progress, Blue for Assigned), adviser note callout banner, and quick metrics bar.
-- **Admin Workspace (`modules-workspace.tsx`)**: Refined pill switcher, active module status dots, frosted cohort assignment cards, and luxury student records table with student avatars, high-contrast badges, pagination, and slide-in/detail inspection drawer.
+- **Admin Records & Flyout**: Audited student records table with student avatars, high-contrast pills, pagination, and slide-in/detail inspection drawer.
 
 ## Database migration status
 

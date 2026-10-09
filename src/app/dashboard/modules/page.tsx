@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { moduleAssignments } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
-import { statusLabels } from "@/lib/modules";
+import { getModuleMeta, moduleCatalog, statusLabels } from "@/lib/modules";
 
 export const metadata = { title: "My Modules" };
 export const dynamic = "force-dynamic";
@@ -80,6 +80,8 @@ export default async function StudentModulesPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
             {assignments.map((item) => {
+              const slug = moduleCatalog.find((m) => m.title === item.title)?.slug || "";
+              const meta = getModuleMeta(slug);
               const statusBadge =
                 item.status === "COMPLETED"
                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
@@ -94,6 +96,9 @@ export default async function StudentModulesPage() {
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400">
+                        {meta.category}
+                      </span>
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${statusBadge}`}
                       >
@@ -109,9 +114,42 @@ export default async function StudentModulesPage() {
                         {statusLabels[item.status]}
                       </span>
                     </div>
-                    <h2 className="text-xl font-bold tracking-tight text-white">
-                      {item.title}
-                    </h2>
+
+                    <div>
+                      <h2 className="text-xl font-bold tracking-tight text-white">
+                        {item.title}
+                      </h2>
+                      <p className="mt-0.5 text-xs text-gray-300 font-medium">
+                        {meta.framework}
+                      </p>
+                    </div>
+
+                    {/* Specific Requirements Container */}
+                    <div className="rounded-xl border border-white/[0.06] bg-black/40 p-3.5 space-y-2">
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        <span>Module Requirements</span>
+                        <span className="text-orange-400">{meta.requirements.estDuration}</span>
+                      </div>
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <span className="h-1.5 w-1.5 rounded-full bg-orange-400 shrink-0" />
+                          <span className="truncate">{meta.requirements.prompts}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <span className="h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
+                          <span className="truncate">{meta.requirements.format}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+                          <span className="truncate">{meta.requirements.resources}</span>
+                        </div>
+                      </div>
+                      <div className="border-t border-white/[0.04] pt-2 text-[11px] text-gray-400">
+                        <span className="font-semibold text-gray-300">Outcome: </span>
+                        <span className="line-clamp-1">{meta.requirements.outcome}</span>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-xs text-gray-400">
                       <div>
                         <span className="block text-[11px] text-gray-500">Assigned</span>

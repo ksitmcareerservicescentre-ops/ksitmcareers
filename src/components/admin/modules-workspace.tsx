@@ -10,7 +10,7 @@ import {
   saveModuleAction,
   searchModuleStudentsAction,
 } from "@/lib/modules-client";
-import { moduleCatalog, parseModuleContent, statusLabels } from "@/lib/modules";
+import { getModuleMeta, moduleCatalog, parseModuleContent, statusLabels } from "@/lib/modules";
 import {
   ModuleForm,
   ModulePreview,
@@ -27,6 +27,65 @@ const message = (error: unknown) =>
   error instanceof Error
     ? error.message
     : "Unable to complete the request. Please try again.";
+
+function getModuleIcon(slug: string) {
+  switch (slug) {
+    case "readiness":
+      return (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      );
+    case "training":
+      return (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      );
+    case "resume":
+      return (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    case "internship":
+      return (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      );
+    case "employers":
+      return (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      );
+    case "jobs":
+      return (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      );
+    case "career-fair":
+      return (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      );
+    case "appointments":
+      return (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+      );
+  }
+}
 
 export function ModulesWorkspace() {
   const [modules, setModules] = useState<Module[] | null>(null);
@@ -127,43 +186,219 @@ export function ModulesWorkspace() {
         </div>
       )}
       {!!modules?.length && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-gradient-to-r from-[#111126] to-[#0c0c1e] p-5 shadow-lg backdrop-blur-xl">
-          <label className="block w-full max-w-xl text-sm font-semibold text-gray-200">
-            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-orange-400">
-              Select module
-            </span>
-            <select
-              aria-label="Select module"
-              className={moduleInput}
-              value={selected}
-              onChange={(e) => setSelected(e.target.value)}
-            >
-              {modules.map((item) => (
-                <option value={item.id} key={item.id}>
-                  {item.title} · {item.isPublished ? "Published" : "Draft"}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="space-y-6">
+          {/* Executive Metrics Overview */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-2xl border border-white/[0.08] bg-[#0c0c1e]/70 p-4 shadow-sm backdrop-blur-xl">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Total Curriculum</span>
+              <p className="mt-1 text-2xl font-black text-white">{modules.length} Modules</p>
+              <p className="text-[11px] text-gray-400">Reusable student tracks</p>
+            </div>
+            <div className="rounded-2xl border border-white/[0.08] bg-[#0c0c1e]/70 p-4 shadow-sm backdrop-blur-xl">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Live Published</span>
+              <p className="mt-1 text-2xl font-black text-emerald-400">
+                {modules.filter((m) => m.isPublished).length}
+              </p>
+              <p className="text-[11px] text-gray-400">Ready for cohort assignment</p>
+            </div>
+            <div className="rounded-2xl border border-white/[0.08] bg-[#0c0c1e]/70 p-4 shadow-sm backdrop-blur-xl">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Draft Templates</span>
+              <p className="mt-1 text-2xl font-black text-amber-400">
+                {modules.filter((m) => !m.isPublished).length}
+              </p>
+              <p className="text-[11px] text-gray-400">Awaiting publication</p>
+            </div>
+            <div className="rounded-2xl border border-white/[0.08] bg-[#0c0c1e]/70 p-4 shadow-sm backdrop-blur-xl">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">Core Frameworks</span>
+              <p className="mt-1 text-2xl font-black text-orange-400">8 Standards</p>
+              <p className="text-[11px] text-gray-400">NACE · STAR · ATS · CIP</p>
+            </div>
+          </div>
+
+          {/* Modules Grid Cards Section */}
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-xl font-bold tracking-tight text-white">
+                  Curriculum Modules Library
+                </h3>
+                <p className="text-xs text-gray-400">
+                  Select any module card to edit configuration, inspect requirements, or preview student interactions.
+                </p>
+              </div>
+
+              {/* Synchronized accessible selector */}
+              <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-300">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-orange-400">Select module</span>
+                <select
+                  aria-label="Select module"
+                  className="bg-transparent text-xs font-medium text-white focus:outline-none"
+                  value={selected}
+                  onChange={(e) => setSelected(e.target.value)}
+                >
+                  {modules.map((item) => (
+                    <option value={item.id} key={item.id} className="bg-[#0c0c1e] text-white">
+                      {item.title} · {item.isPublished ? "Published" : "Draft"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {/* 8-Card Responsive Grid */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {modules.map((item) => {
+                const meta = getModuleMeta(item.slug);
+                const isSelected = selected === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelected(item.id)}
+                    className={`group relative flex flex-col justify-between rounded-2xl border p-5 transition-all duration-300 cursor-pointer ${
+                      isSelected
+                        ? "border-orange-500/80 bg-gradient-to-b from-[#1c1c3c] to-[#0c0c1e] ring-2 ring-orange-500/40 shadow-[0_0_35px_rgba(255,127,36,0.22)] -translate-y-1"
+                        : "border-white/[0.08] bg-gradient-to-b from-[#111126]/90 to-[#0c0c1e]/90 hover:border-orange-500/40 hover:bg-[#14142e] hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:-translate-y-0.5"
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-orange-400 to-transparent" />
+                    )}
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-400">
+                          {getModuleIcon(item.slug)}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                              item.isPublished
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                item.isPublished
+                                  ? "bg-emerald-400 shadow-[0_0_6px_#34d399]"
+                                  : "bg-amber-400"
+                              }`}
+                            />
+                            {item.isPublished ? "Published" : "Draft"}
+                          </span>
+                          <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] font-mono text-gray-400">
+                            v{item.version}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">
+                          {meta.category}
+                        </span>
+                        <h4 className="mt-0.5 text-base font-bold tracking-tight text-white group-hover:text-orange-200 transition-colors">
+                          {item.title}
+                        </h4>
+                        <p className="mt-0.5 text-[11px] font-medium text-gray-300">
+                          {meta.framework}
+                        </p>
+                      </div>
+
+                      <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+                        {meta.description}
+                      </p>
+
+                      {/* Requirements Container with specific requirements */}
+                      <div className="rounded-xl border border-white/[0.06] bg-black/40 p-3 space-y-2">
+                        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                          <span>Specific Requirements</span>
+                          <span className="text-orange-400">{meta.requirements.estDuration}</span>
+                        </div>
+                        <div className="space-y-1.5 text-[11px]">
+                          <div className="flex items-center gap-2 text-gray-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-orange-400 shrink-0" />
+                            <span className="truncate">{meta.requirements.prompts}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
+                            <span className="truncate">{meta.requirements.format}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+                            <span className="truncate">{meta.requirements.resources}</span>
+                          </div>
+                        </div>
+                        <div className="border-t border-white/[0.04] pt-2 text-[11px] text-gray-400">
+                          <span className="font-semibold text-gray-300">Target Outcome: </span>
+                          <span className="line-clamp-1">{meta.requirements.outcome}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between">
+                      {isSelected ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-400">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Active Focus
+                        </span>
+                      ) : (
+                        <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors flex items-center gap-1">
+                          Select to manage
+                          <span className="transition-transform group-hover:translate-x-0.5">→</span>
+                        </span>
+                      )}
+                      <span className="text-[10px] uppercase font-bold text-gray-500">
+                        {item.slug}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active Module Workbench Bar */}
           {current && (
-            <div className="flex items-center gap-3 pt-4 sm:pt-0">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
-                  current.isPublished
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                    : "border-amber-500/30 bg-amber-500/10 text-amber-400"
-                }`}
-              >
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-gradient-to-r from-[#14142c] via-[#0f0f24] to-[#0c0c1e] p-5 shadow-xl backdrop-blur-xl">
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-400">
+                  {getModuleIcon(current.slug)}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400">
+                      Active Workspace
+                    </span>
+                    <span className="text-xs text-gray-500">·</span>
+                    <span className="text-xs text-gray-400 font-mono">v{current.version}</span>
+                  </div>
+                  <h3 className="text-xl font-extrabold text-white">
+                    {current.title}
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    {getModuleMeta(current.slug).framework}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
                 <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    current.isPublished ? "bg-emerald-400" : "bg-amber-400"
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
+                    current.isPublished
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                      : "border-amber-500/30 bg-amber-500/10 text-amber-400"
                   }`}
-                />
-                {current.isPublished ? "Published" : "Draft Template"}
-              </span>
-              <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-mono text-gray-400">
-                v{current.version}
-              </span>
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      current.isPublished ? "bg-emerald-400" : "bg-amber-400"
+                    }`}
+                  />
+                  {current.isPublished ? "Published for Students" : "Draft Template"}
+                </span>
+              </div>
             </div>
           )}
         </div>
