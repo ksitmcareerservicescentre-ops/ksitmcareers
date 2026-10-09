@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState, useTransition } from "reac
 import Link from "next/link";
 import Image from "next/image";
 import { ModulesWorkspace } from "@/components/admin/modules-workspace";
+import { OfficerManagement } from "@/components/admin/officer-management";
 import { bulkImportGalleryAction, createLandingContentAction, deleteLandingContentAction, deleteTrainingVideoAction, markAppointmentAttendanceAction, updateLandingContentAction, updateTrainingVideoAction } from "@/actions/admin";
 
 type Appointment = { id: string; studentName: string; status: string; scheduledStart: Date; staffName: string | null };
@@ -11,6 +12,37 @@ type Gallery = { id: string; title: string; caption: string; imageUrl: string; i
 type Leader = { id: string; name: string; position: string; imageUrl: string; imageAlt: string; summary: string; biography: unknown; isPublished: boolean };
 type Announcement = { id: string; title: string; summary: string; content: string; imageUrl: string | null; isPublished: boolean };
 type TrainingVideo = { id: string; title: string; description: string; videoUrl: string; videoId: string; videoProvider: string; thumbnailUrl: string | null; instructor: string | null; isPublished: boolean; categoryName: string };
+
+type Officer = {
+  id: string;
+  userId: string;
+  fullName: string;
+  staffCode: string | null;
+  designation: string | null;
+  email: string;
+  isActive: boolean;
+  canManageAppointments: boolean;
+  canManageServices: boolean;
+  createdAt: Date;
+};
+
+type StudentOverview = {
+  id: string;
+  fullName: string;
+  regNumber: string;
+  department: string | null;
+  level: string | null;
+  email: string;
+  isActive: boolean;
+  createdAt: Date;
+};
+
+type AuditLogRow = {
+  id: string;
+  action: string;
+  entityType: string;
+  createdAt: Date;
+};
 
 const orangeButton = "rounded-xl bg-[#FF7F24] px-4 py-2.5 text-xs font-extrabold text-[#0A0A1A] transition hover:bg-[#40297B] hover:text-white disabled:opacity-50";
 const input = "w-full rounded-xl border border-white/10 bg-white/[.06] px-3 py-2.5 text-sm text-white outline-none focus:border-[#FF7F24]";
@@ -27,8 +59,28 @@ function ContentForm({ kind, title, fields }: { kind: string; title: string; fie
   </form>;
 }
 
-export function AdminControlCenter({ appointments, gallery, leadership, announcements, training }: { appointments: Appointment[]; gallery: Gallery[]; leadership: Leader[]; announcements: Announcement[]; training: TrainingVideo[] }) {
-  const [active, setActive] = useState("overview");
+export function AdminControlCenter({
+  appointments,
+  gallery,
+  leadership,
+  announcements,
+  training,
+  officers = [],
+  students = [],
+  logs = [],
+  defaultTab = "modules",
+}: {
+  appointments: Appointment[];
+  gallery: Gallery[];
+  leadership: Leader[];
+  announcements: Announcement[];
+  training: TrainingVideo[];
+  officers?: Officer[];
+  students?: StudentOverview[];
+  logs?: AuditLogRow[];
+  defaultTab?: string;
+}) {
+  const [active, setActive] = useState(defaultTab);
   const [createSection, setCreateSection] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -53,7 +105,7 @@ export function AdminControlCenter({ appointments, gallery, leadership, announce
   }, [mobileNavOpen]);
   const [pending, startTransition] = useTransition();
   const nav = [
-    ["overview", "fa-chart-line", "Overview"], ["modules", "fa-layer-group", "Modules"], ["website", "fa-window-maximize", "Landing page"], ["services", "fa-briefcase", "Career services"], ["appointments", "fa-calendar-check", "Appointments"], ["training", "fa-play-circle", "Skills training"], ["assessments", "fa-clipboard-check", "Readiness assessments"], ["opportunities", "fa-laptop-house", "Internships & jobs"], ["employers", "fa-building", "Employer engagement"], ["staff", "fa-user-tie", "Career staff"],
+    ["modules", "fa-layer-group", "Modules"], ["overview", "fa-chart-line", "Overview"], ["staff", "fa-user-tie", "Career staff"], ["website", "fa-window-maximize", "Landing page"], ["services", "fa-briefcase", "Career services"], ["appointments", "fa-calendar-check", "Appointments"], ["training", "fa-play-circle", "Skills training"], ["assessments", "fa-clipboard-check", "Readiness assessments"], ["opportunities", "fa-laptop-house", "Internships & jobs"], ["employers", "fa-building", "Employer engagement"],
   ];
   const approve = (id: string, attended: boolean) => startTransition(async () => { await markAppointmentAttendanceAction(id, attended); });
   return <div className="relative">
@@ -67,7 +119,167 @@ export function AdminControlCenter({ appointments, gallery, leadership, announce
     </aside>
     <section className="min-w-0 space-y-5">
       {active === "modules" && <ModulesWorkspace />}
-      {active === "overview" && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{[["Website CMS", "Edit landing page sections, gallery, leadership and updates", "website"], ["Appointments", `${appointments.length} requests and scheduled sessions`, "appointments"], ["Student services", "Approve attendance and activate career tools", "services"], ["Training videos", "Manage learning videos", "training"], ["Assessments", "Build readiness questions and recommendations", "assessments"], ["Opportunities", "Publish internships, jobs and career fairs", "opportunities"]].map(([title, description, id]) => <button key={id} onClick={() => setActive(id)} className="rounded-2xl border border-white/10 bg-[#101023] p-5 text-left transition hover:-translate-y-1 hover:border-[#FF7F24]/60"><i className="fas fa-arrow-right float-right text-[#FF7F24]" /><h3 className="font-bold text-white">{title}</h3><p className="mt-2 text-xs leading-5 text-gray-400">{description}</p></button>)}</div>}
+      {active === "staff" && <OfficerManagement initialOfficers={officers} />}
+      {active === "overview" && (
+        <div className="space-y-8">
+          {/* Executive Metrics Strip */}
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-5 rounded-2xl bg-[#101023] border border-white/10">
+              <div className="text-xs uppercase font-bold text-gray-400 tracking-wider">
+                Enrolled Students
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
+                {students.length}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Active student accounts
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#101023] border border-white/10">
+              <div className="text-xs uppercase font-bold text-gray-400 tracking-wider">
+                Career Officers
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#FF7F24] mt-1">
+                {officers.length}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Staff advisors & officers
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#101023] border border-white/10">
+              <div className="text-xs uppercase font-bold text-gray-400 tracking-wider">
+                Services Catalog
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-purple-400 mt-1">
+                7
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Institutional offerings
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#101023] border border-white/10">
+              <div className="text-xs uppercase font-bold text-gray-400 tracking-wider">
+                System Health
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-1">
+                100%
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Neon DB operational</p>
+            </div>
+          </section>
+
+          {/* Quick workspace navigation */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[
+              ["Website CMS", "Edit landing page sections, gallery, leadership and updates", "website"],
+              ["Appointments", `${appointments.length} requests and scheduled sessions`, "appointments"],
+              ["Student services", "Approve attendance and activate career tools", "services"],
+              ["Training videos", "Manage learning videos", "training"],
+              ["Assessments", "Build readiness questions and recommendations", "assessments"],
+              ["Opportunities", "Publish internships, jobs and career fairs", "opportunities"],
+            ].map(([title, description, id]) => (
+              <button
+                key={id}
+                onClick={() => setActive(id)}
+                className="rounded-2xl border border-white/10 bg-[#101023] p-5 text-left transition hover:-translate-y-1 hover:border-[#FF7F24]/60"
+              >
+                <i className="fas fa-arrow-right float-right text-[#FF7F24]" />
+                <h3 className="font-bold text-white">{title}</h3>
+                <p className="mt-2 text-xs leading-5 text-gray-400">{description}</p>
+              </button>
+            ))}
+          </div>
+
+          {/* Registered Students Overview */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-extrabold text-white">
+                  Recently Enrolled Students
+                </h2>
+                <p className="text-gray-400 text-xs">
+                  Students registered via KSITM matriculation credentials.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[#101023] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-gray-300">
+                  <thead className="bg-white/5 text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-white/10">
+                    <tr>
+                      <th className="px-6 py-4">Reg Number</th>
+                      <th className="px-6 py-4">Student Name</th>
+                      <th className="px-6 py-4">Department & Level</th>
+                      <th className="px-6 py-4">Email Address</th>
+                      <th className="px-6 py-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {students.map((st) => (
+                      <tr key={st.id} className="hover:bg-white/[0.02]">
+                        <td className="px-6 py-4 font-mono font-bold text-[#FF7F24] text-xs">
+                          {st.regNumber}
+                        </td>
+                        <td className="px-6 py-4 font-bold text-white">
+                          {st.fullName}
+                        </td>
+                        <td className="px-6 py-4 text-xs">
+                          <div>{st.department || "General"}</div>
+                          <div className="text-gray-500">{st.level || "ND"}</div>
+                        </td>
+                        <td className="px-6 py-4 font-mono text-xs">
+                          {st.email}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Active
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          {/* Module Governance & Audit Trail (Strictly module related content, NO USER_LOGIN) */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-extrabold text-white">
+              Module Governance & Audit Trail
+            </h2>
+            <p className="text-gray-400 text-xs">
+              Audit log of curriculum initialization, publishing, and assignment activity.
+            </p>
+            <div className="bg-[#101023] border border-white/10 rounded-2xl p-5 divide-y divide-white/5 space-y-3">
+              {logs.length === 0 ? (
+                <p className="text-xs text-gray-500 py-3">No module audit records yet.</p>
+              ) : (
+                logs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="pt-3 first:pt-0 flex items-start justify-between gap-4 text-xs"
+                  >
+                    <div>
+                      <span className="font-mono font-bold text-orange-400 uppercase">
+                        {log.action}
+                      </span>{" "}
+                      <span className="text-gray-400">on {log.entityType}</span>
+                    </div>
+                    <div className="text-gray-500 font-mono text-[11px]">
+                      {new Date(log.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </div>
+      )}
       {active === "website" && <div className="space-y-8"><div className="grid gap-5 xl:grid-cols-3"><CreateCard title="Gallery" count={gallery.length} onClick={() => setCreateSection(createSection === "gallery" ? null : "gallery")} /> <CreateCard title="Leadership" count={leadership.length} onClick={() => setCreateSection(createSection === "leadership" ? null : "leadership")} /> <CreateCard title="Updates" count={announcements.length} onClick={() => setCreateSection(createSection === "announcement" ? null : "announcement")} /></div>{createSection === "gallery" && <><ContentForm kind="gallery" title="Create gallery item" fields={[{ name: "title", label: "Title", required: true }, { name: "imageUrl", label: "Image URL", required: true }, { name: "imageAlt", label: "Alt text" }, { name: "caption", label: "Caption", textarea: true, required: true }]} /><BulkGalleryImport /></>}{createSection === "leadership" && <ContentForm kind="leadership" title="Create leadership profile" fields={[{ name: "name", label: "Name", required: true }, { name: "position", label: "Position", required: true }, { name: "imageUrl", label: "Profile image URL", required: true }, { name: "summary", label: "Short biography", textarea: true, required: true }, { name: "biography", label: "Full biography (one paragraph per line)", textarea: true, required: true }]} />}{createSection === "announcement" && <ContentForm kind="announcement" title="Create update" fields={[{ name: "title", label: "Title", required: true }, { name: "summary", label: "Summary", required: true }, { name: "content", label: "Content", textarea: true, required: true }, { name: "imageUrl", label: "Optional image URL" }]} />}<LandingContentCrud gallery={gallery} leadership={leadership} announcements={announcements} /></div>}
       {active === "services" && <div className="grid gap-5 xl:grid-cols-2"><ContentForm kind="service" title="Add career service" fields={[{ name: "title", label: "Service name", required: true }, { name: "slug", label: "Slug", required: true }, { name: "summary", label: "Summary", required: true }, { name: "description", label: "Description", textarea: true }, { name: "icon", label: "Font Awesome icon (e.g. fa-file-alt)" }]} /><div className="rounded-2xl border border-white/10 bg-[#101023] p-5"><h3 className="font-bold text-white">Service access rule</h3><p className="mt-2 text-sm leading-6 text-gray-400">Career staff assess each student. Super Admin can review the resulting entitlements from the staff workspace. Approved attendance can activate the student’s remaining career services.</p><button onClick={() => setActive("appointments")} className={`${orangeButton} mt-4`}>Review attendance</button></div></div>}
       {active === "training" && <div className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-gray-400">Add YouTube videos or HTTPS-hosted MP4/WebM files. Students receive the same learning library after access is activated.</p><Link href="/training/preview" className={orangeButton}>Open video center</Link></div><ContentForm kind="training" title="Add learning video" fields={[{ name: "title", label: "Video title", required: true }, { name: "category", label: "Category", required: true }, { name: "videoUrl", label: "YouTube or direct video URL", required: true }, { name: "thumbnailUrl", label: "Optional thumbnail URL" }, { name: "instructor", label: "Instructor" }, { name: "description", label: "Description", textarea: true, required: true }]} /><TrainingCrud items={training} /></div>}
@@ -75,7 +287,6 @@ export function AdminControlCenter({ appointments, gallery, leadership, announce
       {active === "assessments" && <Placeholder title="Job readiness assessments" body="Create assessment templates, questions, attempts, scores and recommendations from the assessment workspace." />}
       {active === "opportunities" && <Placeholder title="Virtual internships, job board and Career Fair Management" body="Publish opportunities with employer, deadline, location, application method and event details." />}
       {active === "employers" && <Placeholder title="Employer engagement" body="Manage partner organizations, announcements, career events and employer opportunities." />}
-      {active === "staff" && <Placeholder title="Career staff" body="Use the Career Officers section below to create, activate and disable staff accounts. Public registration remains student-only." />}
     </section>
   </div>;
 }

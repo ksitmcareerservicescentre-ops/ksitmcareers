@@ -292,18 +292,6 @@ export async function loginAction(
       };
     }
 
-    // Record login audit event
-    await recordAuditLog({
-      actorId: targetUser.id,
-      action: "USER_LOGIN",
-      entityType: "USER",
-      entityId: targetUser.id,
-      details: {
-        role: targetUser.role,
-        identifierUsed: identifier.includes("@") ? "email" : "regNumber",
-      },
-    });
-
     // Create session & cookie
     await createSession(targetUser.id);
 

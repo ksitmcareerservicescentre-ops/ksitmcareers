@@ -100,6 +100,11 @@ The entire Modules ecosystem was elevated to 2026 modern-classic UI/UX design st
 - **Obsidian / Frosted Glass Theme**: Dark glass panels (`border-white/[0.08]`, `bg-[#0c0c1e]/90`, subtle gradient backdrops) with radiant amber and orange glowing action buttons (`shadow-[0_0_24px_rgba(249,115,22,0.35)]`).
 - **Interactive Student Preview & Form (`module-form.tsx`)**: Individual question cards with clean badges, visual proficiency scale hints (`1 (Beginning) → 3 (Competent) → 5 (Advanced)`), and frosted resource links with animated arrow indicators.
 - **Admin Records & Flyout**: Audited student records table with student avatars, high-contrast pills, pagination, and slide-in/detail inspection drawer.
+- **Strictly Module-Related Audit Trail & USER_LOGIN Purge**:
+  * Removed `USER_LOGIN on USER` audit logging completely from authentication flows (`src/actions/auth.ts`).
+  * Purged all historical `USER_LOGIN` records from both hosted databases (`ksitmcareers` and `neondb`).
+  * Filtered audit logs query to only capture module-related entries (`like(auditLogs.action, "MODULE_%")` or `learning_modules`/`module_assignments` entities).
+  * Encapsulated `OfficerManagement` into the "Career staff" tab and enrolled students/metrics into the "Overview" tab of `AdminControlCenter`, completely clearing the main page root below the grid cards so `/admin` loads the Modules grid cleanly with zero trailing content.
 
 ## Database migration status
 
