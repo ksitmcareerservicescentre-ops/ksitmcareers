@@ -1,0 +1,105 @@
+import { moduleCatalog, starterContent } from "@/lib/modules";
+import type { learningModules } from "@/db/schema";
+
+export async function markAppointmentAttendanceAction() {
+  return { success: true };
+}
+
+export async function createLandingContentAction() {
+  return { success: true };
+}
+
+export async function deleteLandingContentAction() {
+  return { success: true };
+}
+
+export async function bulkImportGalleryAction() {
+  return { success: true };
+}
+
+export async function deleteTrainingVideoAction() {
+  return { success: true };
+}
+
+export async function updateLandingContentAction() {
+  return { success: true };
+}
+
+export async function updateTrainingVideoAction() {
+  return { success: true };
+}
+
+export async function createCareerOfficerAction() {
+  return { success: true };
+}
+
+export async function toggleStaffStatusAction() {
+  return { success: true };
+}
+
+let modules: (typeof learningModules.$inferSelect)[] = moduleCatalog.map(
+  (module, i) => ({
+    ...module,
+    id: `module-${i}`,
+    content: starterContent(module.slug),
+    version: 1,
+    isPublished: true,
+    updatedAt: new Date(),
+  }),
+);
+
+export async function listModulesAction() {
+  return modules;
+}
+
+export async function initializeModulesAction() {
+  return modules;
+}
+
+export async function saveModuleAction(input: {
+  id: string;
+  title: string;
+  raw: string;
+  isPublished: boolean;
+}) {
+  modules = modules.map((m) =>
+    m.id === input.id
+      ? {
+          ...m,
+          title: input.title,
+          content: JSON.parse(input.raw),
+          isPublished: input.isPublished,
+          version: m.version + 1,
+        }
+      : m,
+  );
+  return modules.find((m) => m.id === input.id)!;
+}
+
+export async function searchModuleStudentsAction() {
+  return [
+    {
+      id: "student-1",
+      fullName: "Test Student",
+      regNumber: "TEST-001",
+      department: "Computing",
+      level: "100",
+      email: "student@example.test",
+    },
+  ];
+}
+
+export async function assignModuleAction() {
+  return {
+    message:
+      "Module assigned. The start date will be recorded when the student begins.",
+  };
+}
+
+export async function moduleRecordsAction() {
+  return { rows: [], hasMore: false };
+}
+
+export async function moduleRecordDetailAction() {
+  throw new Error("No record selected in this UI fixture.");
+}

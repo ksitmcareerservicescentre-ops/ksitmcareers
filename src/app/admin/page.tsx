@@ -3,7 +3,18 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, and, or, like, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { users, staffProfiles, studentProfiles, auditLogs, appointments, galleryItems, leadershipProfiles, announcements, trainingVideos, trainingCategories } from "@/db/schema";
+import {
+  users,
+  staffProfiles,
+  studentProfiles,
+  auditLogs,
+  appointments,
+  galleryItems,
+  leadershipProfiles,
+  announcements,
+  trainingVideos,
+  trainingCategories,
+} from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { logoutAction } from "@/actions/auth";
 import { AdminControlCenter } from "@/components/admin/admin-control-center";
@@ -77,15 +88,24 @@ export default async function SuperAdminDashboardPage() {
         ne(auditLogs.action, "USER_LOGIN"),
         or(
           like(auditLogs.action, "MODULE_%"),
-          inArray(auditLogs.entityType, ["learning_modules", "module_assignments"])
-        )
-      )
+          inArray(auditLogs.entityType, [
+            "learning_modules",
+            "module_assignments",
+          ]),
+        ),
+      ),
     )
     .orderBy(desc(auditLogs.createdAt))
     .limit(10);
 
   const appointmentRows = await db
-    .select({ id: appointments.id, studentName: studentProfiles.fullName, status: appointments.status, scheduledStart: appointments.scheduledStart, staffName: staffProfiles.fullName })
+    .select({
+      id: appointments.id,
+      studentName: studentProfiles.fullName,
+      status: appointments.status,
+      scheduledStart: appointments.scheduledStart,
+      staffName: staffProfiles.fullName,
+    })
     .from(appointments)
     .innerJoin(studentProfiles, eq(appointments.studentId, studentProfiles.id))
     .leftJoin(staffProfiles, eq(appointments.staffId, staffProfiles.id))
@@ -93,11 +113,38 @@ export default async function SuperAdminDashboardPage() {
     .limit(50);
 
   const [gallery, leadership, publicAnnouncements] = await Promise.all([
-    db.select().from(galleryItems).orderBy(galleryItems.displayOrder, desc(galleryItems.createdAt)),
-    db.select().from(leadershipProfiles).orderBy(leadershipProfiles.displayOrder, desc(leadershipProfiles.createdAt)),
+    db
+      .select()
+      .from(galleryItems)
+      .orderBy(galleryItems.displayOrder, desc(galleryItems.createdAt)),
+    db
+      .select()
+      .from(leadershipProfiles)
+      .orderBy(
+        leadershipProfiles.displayOrder,
+        desc(leadershipProfiles.createdAt),
+      ),
     db.select().from(announcements).orderBy(desc(announcements.createdAt)),
   ]);
-  const training = await db.select({ id: trainingVideos.id, title: trainingVideos.title, description: trainingVideos.description, videoUrl: trainingVideos.videoUrl, videoId: trainingVideos.videoId, videoProvider: trainingVideos.videoProvider, thumbnailUrl: trainingVideos.thumbnailUrl, instructor: trainingVideos.instructor, isPublished: trainingVideos.isPublished, categoryName: trainingCategories.name }).from(trainingVideos).innerJoin(trainingCategories, eq(trainingVideos.categoryId, trainingCategories.id)).orderBy(trainingVideos.displayOrder, desc(trainingVideos.createdAt));
+  const training = await db
+    .select({
+      id: trainingVideos.id,
+      title: trainingVideos.title,
+      description: trainingVideos.description,
+      videoUrl: trainingVideos.videoUrl,
+      videoId: trainingVideos.videoId,
+      videoProvider: trainingVideos.videoProvider,
+      thumbnailUrl: trainingVideos.thumbnailUrl,
+      instructor: trainingVideos.instructor,
+      isPublished: trainingVideos.isPublished,
+      categoryName: trainingCategories.name,
+    })
+    .from(trainingVideos)
+    .innerJoin(
+      trainingCategories,
+      eq(trainingVideos.categoryId, trainingCategories.id),
+    )
+    .orderBy(trainingVideos.displayOrder, desc(trainingVideos.createdAt));
 
   return (
     <div className="min-h-screen bg-[#0A0A1A] text-white">
@@ -138,7 +185,7 @@ export default async function SuperAdminDashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pt-36 pb-8">
+      <main className="min-h-screen pt-20 pb-8 px-4 sm:px-6 lg:px-8">
         <AdminControlCenter
           appointments={appointmentRows}
           gallery={gallery}

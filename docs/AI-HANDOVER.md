@@ -1,6 +1,6 @@
 # AI handover
 
-Updated: 9 October 2026. Read this before continuing. Verify repository state before acting; this is a checkpoint, not a substitute for current evidence.
+Updated: 10 October 2026. Read this before continuing. Verify repository state before acting; this is a checkpoint, not a substitute for current evidence.
 
 ## User's objective
 
@@ -67,9 +67,10 @@ This implementation is the shared content/activity, assignment and tracking fram
 ## Academic Research & Latest Tech Curriculum
 
 The starter templates for all eight modules have been upgraded with evidence-based higher-education frameworks and modern career-tech standards:
+
 - **Job readiness assessments**: NACE 8 Career Readiness Competencies, Bandura's self-efficacy model, 1–5 competency self-ratings, diagnostic readiness staging, and 30-day action plan.
 - **Employability skills training**: Kolb's Experiential Learning Cycle, Daubney's KASE framework, and full STAR behavioral articulation (Situation/Task, Action, Result & Reflection).
-- **Resume builder**: ATS parsing compliance standards, Google's XYZ formula (*Accomplished [X] measured by [Y] by doing [Z]*), comma-separated ATS keyword indexing, and format audit.
+- **Resume builder**: ATS parsing compliance standards, Google's XYZ formula (_Accomplished [X] measured by [Y] by doing [Z]_), comma-separated ATS keyword indexing, and format audit.
 - **Virtual Internship**: Transformative Experiential Learning Model (TELM) modeled after Forage, tracking domain specialization, remote collaboration tools, deliverables, and remote problem-solving reflections.
 - **Employer engagement**: Granovetter's Weak Ties theory, Informational Interviewing protocol, 30-second elevator pitch, strategic inquiries, and 24-hour follow-up loops.
 - **Job board**: Cognitive Information Processing (CIP) theory, job posting keyword deconstruction, qualification alignment pitches, and pipeline stage tracking.
@@ -81,34 +82,47 @@ Each module includes curated, verified HTTPS educational resources and refined U
 ## 2026 Modern Classic UI & Grid Cards Architecture
 
 The entire Modules ecosystem was elevated to 2026 modern-classic UI/UX design standards:
+
 - **Zero Trailing Content**: The main admin Modules workspace ends cleanly immediately after the 8 Grid Cards. No workbench bars, inline forms, or tables clutter the bottom of the page.
 - **Responsive 4-Column Grid Cards (`modules-workspace.tsx` & `/dashboard/modules`)**: The 8 modules are displayed in a modern luxury grid of cards. Each card displays:
-  * Bespoke category SVG icon in luminous amber frosted box
-  * Status chip (Published with glowing emerald dot / Draft Template with amber dot) + version pill
-  * Module title, category, and academic framework badge
-  * Specific Requirements container detailing prompt counts & required counts, format types, curated resource links count, target outcome, and estimated duration
-  * Action button (`Manage module →`) that triggers the slide-over workbench drawer
+  - Bespoke category SVG icon in luminous amber frosted box
+  - Status chip (Published with glowing emerald dot / Draft Template with amber dot) + version pill
+  - Module title, category, and academic framework badge
+  - Specific Requirements container detailing prompt counts & required counts, format types, curated resource links count, target outcome, and estimated duration
+  - Action button (`Manage module →`) that triggers the slide-over workbench drawer
+- **Two-Tier Extended Submenu Sidebar (`admin-control-center.tsx`)**:
+  - Tier 1 Primary Rail: Fixed obsidian sidebar (`w-64`) with brand logo, nav buttons, badges, and chevron submenu indicators.
+  - Tier 2 Submenu Extended Rail: Floating glassmorphic flyout drawer (`w-80`) displaying all 8 module titles with category icons, framework chips, live emerald status dots, and "All Modules Library".
+  - Hover bridge with 280ms debounce timer for smooth cursor traversal between rails.
+  - Auto-dismiss on submenu selection so clicking any module smoothly glides the flyout away and presents the unobstructed environment.
+  - Mobile responsive accordions for smaller devices.
+- **Focused Single Module Environment (`modules-workspace.tsx`)**:
+  - Selecting any module from the extended submenu immediately renders that module's focused workspace environment.
+  - Includes breadcrumb navigation (`← All Modules Library / [Category]`), title, version badge, and `Manage in Workbench Drawer →` button.
+  - Features the full academic framework deep-dive card, 4-part requirements matrix, curriculum activity prompts review with requirement badges, clickable curated resource cards, student cohort search & assignment, and live assignment records.
+  - Clicking "All Modules Library" immediately restores the clean 8 Grid Cards library.
 - **Slide-over Management Drawer Modal**: Clicking `Manage module →` opens a full-height, backdrop-blurred drawer housing:
-  * Module selector combobox and live status badges
-  * View tabswitcher (**Module Manager** and **Preview**)
-  * Dual-pane JSON schema editor with instant syntax/schema validation
-  * Interactive live student preview
-  * Student search and cohort assignment tool
-  * Filterable, paginated student records table with full response inspect flyouts
-  * Accessible `Close drawer` trigger returning the user to the pristine grid
+  - Module selector combobox and live status badges
+  - View tabswitcher (**Module Manager** and **Preview**)
+  - Dual-pane JSON schema editor with instant syntax/schema validation
+  - Interactive live student preview
+  - Student search and cohort assignment tool
+  - Filterable, paginated student records table with full response inspect flyouts
+  - Accessible `Close drawer` trigger returning the user to the pristine grid
 - **Executive Metrics Strip**: 4 luxury stat cards summarizing Total Curriculum (8 Modules), Live Published count, Draft Templates count, and Core Pedagogical Frameworks.
 - **Obsidian / Frosted Glass Theme**: Dark glass panels (`border-white/[0.08]`, `bg-[#0c0c1e]/90`, subtle gradient backdrops) with radiant amber and orange glowing action buttons (`shadow-[0_0_24px_rgba(249,115,22,0.35)]`).
 - **Interactive Student Preview & Form (`module-form.tsx`)**: Individual question cards with clean badges, visual proficiency scale hints (`1 (Beginning) → 3 (Competent) → 5 (Advanced)`), and frosted resource links with animated arrow indicators.
 - **Admin Records & Flyout**: Audited student records table with student avatars, high-contrast pills, pagination, and slide-in/detail inspection drawer.
 - **Strictly Module-Related Audit Trail & USER_LOGIN Purge**:
-  * Removed `USER_LOGIN on USER` audit logging completely from authentication flows (`src/actions/auth.ts`).
-  * Purged all historical `USER_LOGIN` records from both hosted databases (`ksitmcareers` and `neondb`).
-  * Filtered audit logs query to only capture module-related entries (`like(auditLogs.action, "MODULE_%")` or `learning_modules`/`module_assignments` entities).
-  * Encapsulated `OfficerManagement` into the "Career staff" tab and enrolled students/metrics into the "Overview" tab of `AdminControlCenter`, completely clearing the main page root below the grid cards so `/admin` loads the Modules grid cleanly with zero trailing content.
+  - Removed `USER_LOGIN on USER` audit logging completely from authentication flows (`src/actions/auth.ts`).
+  - Purged all historical `USER_LOGIN` records from both hosted databases (`ksitmcareers` and `neondb`).
+  - Filtered audit logs query to only capture module-related entries (`like(auditLogs.action, "MODULE_%")` or `learning_modules`/`module_assignments` entities).
+  - Encapsulated `OfficerManagement` into the "Career staff" tab and enrolled students/metrics into the "Overview" tab of `AdminControlCenter`, completely clearing the main page root below the grid cards so `/admin` loads the Modules grid cleanly with zero trailing content.
 
 ## Database migration status
 
 **The database migration has been successfully applied to both hosted databases (`ksitmcareers` and `neondb`).**
+
 - Verified `drizzle.__drizzle_migrations` schema and journal: `0000_foamy_black_queen` was already safely tracked at timestamp `1791046208057`, avoiding any replay of pre-existing tables.
 - Applied `0001_ambitious_morlun.sql` via `drizzle-kit migrate` and `migrate-neondb.mjs`.
 - Both databases now reflect 36 tables (+2 new tables: `learning_modules` and `module_assignments` with constraints and indexes). Existing user (36) and career services (7) records remain untouched.

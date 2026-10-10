@@ -13,7 +13,7 @@ This is the shared activity/content and assignment workflow for all eight studen
 
 1. **Job readiness assessments**: Grounded in the **NACE 8 Career Readiness Competencies** (National Association of Colleges and Employers) and Bandura's Career Self-Efficacy Theory. Features multi-dimensional 1–5 competency self-ratings, diagnostic readiness staging, and 30-day gap remediation planning.
 2. **Employability skills training**: Grounded in **Kolb's Experiential Learning Cycle** and the **STAR Method** (Situation, Task, Action, Result). Scaffolds concrete workplace challenges, behavioral action articulation, measurable results, and interview delivery confidence.
-3. **Resume builder**: Grounded in **Applicant Tracking System (ATS)** parsing standards and **Google's XYZ Formula** (*Accomplished [X] measured by [Y] by doing [Z]*). Guides professional summary framing, ATS keyword inventories, quantified impact bullets, and parsing quality audit.
+3. **Resume builder**: Grounded in **Applicant Tracking System (ATS)** parsing standards and **Google's XYZ Formula** (_Accomplished [X] measured by [Y] by doing [Z]_). Guides professional summary framing, ATS keyword inventories, quantified impact bullets, and parsing quality audit.
 4. **Virtual Internship**: Grounded in the **Transformative Experiential Learning Model (TELM)** and Daubney's remote placement KASE framework (modeled after Forage). Structures client brief analysis, domain specialization, remote collaboration tooling, deliverable submission, and asynchronous problem-solving reflection.
 5. **Employer engagement**: Grounded in **Granovetter's Strength of Weak Ties** and the **Informational Interviewing Methodology** (Bolles). Guides target organization research, 30-second elevator pitch formulation, strategic inquiry questions, and 24-hour follow-up protocol.
 6. **Job board**: Grounded in **Cognitive Information Processing (CIP)** Career Theory and pipeline tracking models. Deconstructs job postings for core ATS keywords, qualification alignment pitches, application customization notes, and multi-stage status management.
@@ -27,6 +27,7 @@ Limits: 100 KB JSON, 100 questions, 30 resources, 10,000 characters per answer. 
 ## 2026 Grid Cards & UI Architecture
 
 Both the Super Admin workspace and Student Dashboard implement modern-classic 2026 UI/UX design standards:
+
 - **Zero Trailing Content**: The main workspace page cleanly concludes immediately after the 8 Grid Cards. No workbench bars, inline forms, or tables clutter the main dashboard view.
 - **Curriculum Modules Grid**: The 8 modules are presented in a responsive 4-column luxury card grid (`grid-cols-1 md:grid-cols-2 lg:grid-cols-4`).
 - **Specific Requirements Displayed on Each Card**:
@@ -35,11 +36,11 @@ Both the Super Admin workspace and Student Dashboard implement modern-classic 20
   - Status indicator (Published with glowing emerald dot vs Draft Template with amber dot) and version chip (`v1`, `v2`)
   - Module title and evidence-based pedagogical framework badge
   - Specific Requirements container in obsidian frosted glass detailing:
-    * Question prompts count & required count
-    * Question format types (`TEXT`, `MULTIPLE_CHOICE`, `SCALE_1_5`)
-    * Curated framework resource guides count
-    * Estimated duration / time commitment (e.g. `15–20 Mins`)
-    * Target outcome / competency goal
+    - Question prompts count & required count
+    - Question format types (`TEXT`, `MULTIPLE_CHOICE`, `SCALE_1_5`)
+    - Curated framework resource guides count
+    - Estimated duration / time commitment (e.g. `15–20 Mins`)
+    - Target outcome / competency goal
   - **Manage module CTA button** (`Manage module →`) on each card that smoothly invokes the on-demand management drawer.
 - **Slide-over Management Drawer Modal**: Clicking `Manage module` opens a sleek, backdrop-blurred drawer housing:
   - Top tab switcher (**Module Manager** and **Preview**)
@@ -47,6 +48,29 @@ Both the Super Admin workspace and Student Dashboard implement modern-classic 20
   - Dual-pane JSON schema editor, live interactive student preview, cohort student search/assignment, and admin assignment tracking records
   - Clean `Close drawer` trigger that restores the focused grid view
 - **Executive Metrics Strip**: 4 luxury stat cards summarizing Total Curriculum (8 Modules), Live Published count, Draft Templates count, and Core Pedagogical Frameworks.
+
+## Extended Submenu Sidebar & Single Module Environment
+
+To provide navigation following modern design practices:
+
+- **Two-Tier Desktop Sidebar**:
+  - **Tier 1 (Primary Rail)**: Obsidian dark fixed navigation rail (`w-64`) with brand badge, system items, submenu badges, and chevron indicators.
+  - **Tier 2 (Submenu Extended Rail)**: Glassmorphic flyout drawer (`w-80`) positioned at `left-64` with obsidian elevation shadow, close trigger, and luxury submenu cards:
+    - `All Modules Library` (returns to the 8 Grid Cards view)
+    - `Job readiness assessments` (Diagnostic Core · Readiness Benchmark)
+    - `Employability skills training` (Skill Development · Behavioral Mastery)
+    - `Resume builder` (Career Assets · ATS Optimized)
+    - `Virtual Internship` (Experiential Learning · Industry Simulation)
+    - `Employer engagement` (Professional Networking · Networking Outreach)
+    - `Job board` (Search & Strategy · Opportunity Pipeline)
+    - `Career Fair Management` (Event Strategy · Event Conversion)
+    - `Appointment Scheduler` (Advisory Coaching · Targeted Coaching)
+  - **Smooth Hover & Pinning Bridge**: Hovering over menu items with submenus opens the extended panel with a 280ms debounce bridge. Clicking an item selects it and glides the panel away to reveal the workspace, while clicking the rail item pins it.
+  - **Mobile Accordion Navigation**: Seamless collapsible nested accordions on smaller viewports with touch-friendly tap targets.
+- **Focused Single Module Environment**:
+  - Selecting any individual module from the extended rail (or from the grid card) immediately renders that module's focused workspace environment.
+  - Features breadcrumb navigation (`← All Modules Library / [Category]`), title, version badge, published status, and direct `Manage in Workbench Drawer →` action.
+  - Displays the in-depth pedagogical framework card, the 4-part specific requirements matrix, an interactive curriculum questions review with requirement badges, curated HTTPS resource cards, student cohort search & assignment, and live module records.
 
 ## Assignment records
 
