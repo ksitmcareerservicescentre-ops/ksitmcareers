@@ -793,9 +793,26 @@ function AssessmentEditorModal({
   // Configurable minimum options setting (Default 3, adjustable from 2 to 6)
   const [minOptions, setMinOptions] = useState(3);
 
-  // Questions state
+  const createEmptyQuestion = (order = 1): ObjectiveQuestionData => ({
+    questionText: "",
+    questionType: "MULTIPLE_CHOICE",
+    options: {
+      choices: [
+        { id: "A", text: "" },
+        { id: "B", text: "" },
+        { id: "C", text: "" },
+        { id: "D", text: "" },
+      ],
+      correctOption: "A",
+      explanation: "",
+      points: 1,
+    },
+    displayOrder: order,
+  });
+
+  // Questions state - new assessments initialize with exactly 1 empty question ready for input
   const [questions, setQuestions] = useState<ObjectiveQuestionData[]>(() =>
-    assessmentId ? [] : starterNaceQuestions.slice(0, 3)
+    assessmentId ? [] : [createEmptyQuestion(1)]
   );
   const [mode, setMode] = useState<"builder" | "bulk">("builder");
   const [bulkText, setBulkText] = useState("");
@@ -950,53 +967,72 @@ function AssessmentEditorModal({
   const currentSlice = questions.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md overflow-y-auto">
-      <div className="relative my-8 w-full max-w-5xl rounded-3xl border border-white/10 bg-[#090918] p-6 sm:p-8 shadow-2xl space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-          <div>
-            <span className="text-[10px] font-mono uppercase tracking-widest text-orange-400">
-              Assessment Designer (1 to 300 Objective Items)
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/90 backdrop-blur-md p-3 sm:p-6 md:p-8 flex justify-center items-start">
+      <div className="relative my-4 sm:my-8 w-full max-w-5xl rounded-2xl sm:rounded-3xl border border-white/10 bg-[#090918] p-5 sm:p-8 shadow-2xl space-y-6">
+        {/* Sticky Top Header with Proportionate Space and Prominent Close Button */}
+        <div className="sticky top-0 z-30 -mx-5 -mt-5 sm:-mx-8 sm:-mt-8 px-5 sm:px-8 py-4 sm:py-5 bg-[#090918]/95 backdrop-blur-md border-b border-white/10 rounded-t-2xl sm:rounded-t-3xl flex items-center justify-between gap-4 shadow-md">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-orange-400 font-bold block truncate">
+              Job Readiness Assessment Designer
             </span>
-            <h2 className="font-academic text-xl font-bold text-white sm:text-2xl">
+            <h2 className="font-academic text-lg sm:text-2xl font-black text-white truncate">
               {assessmentId ? "Edit Assessment" : "Create New Assessment"}
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 text-gray-400 hover:text-white flex items-center justify-center text-sm"
-          >
-            <i className="fas fa-times" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 px-3.5 py-2 text-xs sm:text-sm font-bold text-white transition-all shadow-sm cursor-pointer"
+              title="Close form"
+            >
+              <i className="fas fa-times text-sm text-orange-400" />
+              <span>Close</span>
+            </button>
+          </div>
         </div>
 
         {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">
-            {error}
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 text-xs text-red-300 flex items-center gap-2">
+            <i className="fas fa-exclamation-triangle text-red-400 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
         {loading ? (
-          <div className="py-12 text-center text-xs text-gray-400">
-            <i className="fas fa-spinner fa-spin mr-2" /> Loading assessment details…
+          <div className="py-16 text-center text-xs text-gray-400">
+            <i className="fas fa-spinner fa-spin text-lg text-orange-400 mb-2 block" />
+            <span>Loading assessment details…</span>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Basic Info Matrix */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-1.5 sm:col-span-2">
-                <label className="text-xs font-semibold text-gray-300">Assessment Title:</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. NACE 8 Core Competencies & Workplace Diagnostic"
-                  className="w-full rounded-xl border border-white/10 bg-[#0c0c1e] px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none"
-                />
+            {/* Prominent Assessment Name / Title Card */}
+            <div className="rounded-2xl border-2 border-orange-500/40 bg-orange-500/[0.05] p-4 sm:p-5 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-2">
+                  <i className="fas fa-file-signature text-orange-400 text-sm" />
+                  <span>Assessment Name / Title <span className="text-red-400">*</span></span>
+                </label>
+                <span className="text-[10px] sm:text-xs font-mono text-orange-400 uppercase tracking-wider font-semibold">
+                  Required Field
+                </span>
               </div>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter Assessment Name (e.g. Job Readiness Diagnostic Assessment)"
+                className="w-full rounded-xl border border-white/20 bg-[#0c0c1e] px-4 py-3 text-sm sm:text-base text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30 focus:outline-none font-bold transition-all shadow-xs"
+                autoFocus={!assessmentId}
+              />
+              <p className="text-[11px] text-gray-400">
+                This title appears across the student testing engine, score ledgers, and certification records.
+              </p>
+            </div>
 
-              <div className="space-y-1.5">
+            {/* Basic Info Matrix: Category, Description */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1.5 sm:col-span-1">
                 <label className="text-xs font-semibold text-gray-300">Curriculum Category:</label>
                 <select
                   value={category}
@@ -1012,8 +1048,8 @@ function AssessmentEditorModal({
                 </select>
               </div>
 
-              <div className="space-y-1.5 sm:col-span-3">
-                <label className="text-xs font-semibold text-gray-300">Description / Instructions:</label>
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-xs font-semibold text-gray-300">Description / Student Instructions:</label>
                 <textarea
                   rows={2}
                   value={description}
@@ -1368,27 +1404,29 @@ function AssignModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-      <div className="relative w-full max-w-2xl rounded-3xl border border-white/10 bg-[#090918] p-6 sm:p-8 shadow-2xl space-y-6">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/85 p-3 sm:p-6 md:p-8 backdrop-blur-md">
+      <div className="relative my-4 sm:my-8 w-full max-w-2xl rounded-2xl sm:rounded-3xl border border-white/10 bg-[#090918] p-5 sm:p-8 shadow-2xl space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-          <div>
-            <span className="text-[10px] font-mono uppercase tracking-widest text-orange-400">
+        <div className="flex items-center justify-between border-b border-white/[0.08] pb-4 gap-3">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-orange-400 font-bold block truncate">
               Student Assignment Hub
             </span>
-            <h2 className="font-academic text-xl font-bold text-white sm:text-2xl">
+            <h2 className="font-academic text-xl font-bold text-white sm:text-2xl truncate">
               Assign Assessment
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400 mt-0.5 truncate">
               Target: <strong className="text-white">{assessment.title}</strong>
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 text-gray-400 hover:text-white flex items-center justify-center text-sm"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-bold text-white transition-all cursor-pointer shrink-0"
+            title="Close"
           >
-            <i className="fas fa-times" />
+            <i className="fas fa-times text-orange-400" />
+            <span>Close</span>
           </button>
         </div>
 
@@ -1551,23 +1589,23 @@ function PreviewModal({
   const total = questions.length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md overflow-y-auto">
-      <div className="relative my-8 w-full max-w-3xl rounded-3xl border border-white/10 bg-[#090918] p-6 sm:p-8 shadow-2xl space-y-6">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/85 p-3 sm:p-6 md:p-8 backdrop-blur-md">
+      <div className="relative my-4 sm:my-8 w-full max-w-3xl rounded-2xl sm:rounded-3xl border border-white/10 bg-[#090918] p-5 sm:p-8 shadow-2xl space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-orange-400">
+        <div className="flex items-center justify-between border-b border-white/[0.08] pb-4 gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-orange-400 font-bold">
                 Interactive Examination Preview
               </span>
               <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-gray-300">
                 Staff Review Mode
               </span>
             </div>
-            <h2 className="font-academic text-xl font-bold text-white sm:text-2xl">
+            <h2 className="font-academic text-xl font-bold text-white sm:text-2xl truncate">
               {assessment.title}
             </h2>
-            <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs text-gray-400 mt-1 flex-wrap">
               <span>{total} Objective Items</span>
               <span>·</span>
               <span>{assessment.timeLimitMinutes} Minutes</span>
@@ -1578,9 +1616,11 @@ function PreviewModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 text-gray-400 hover:text-white flex items-center justify-center text-sm"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-bold text-white transition-all cursor-pointer shrink-0"
+            title="Close"
           >
-            <i className="fas fa-times" />
+            <i className="fas fa-times text-orange-400" />
+            <span>Close</span>
           </button>
         </div>
 
@@ -1734,27 +1774,29 @@ function StudentSubmissionInspectorModal({
   const isPassed = attempt.score !== null && attempt.score >= attempt.passingScore;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md overflow-y-auto">
-      <div className="relative my-8 w-full max-w-4xl rounded-3xl border border-white/10 bg-[#090918] p-6 sm:p-8 shadow-2xl space-y-6">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/85 p-3 sm:p-6 md:p-8 backdrop-blur-md">
+      <div className="relative my-4 sm:my-8 w-full max-w-4xl rounded-2xl sm:rounded-3xl border border-white/10 bg-[#090918] p-5 sm:p-8 shadow-2xl space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-          <div>
-            <span className="text-[10px] font-mono uppercase tracking-widest text-orange-400">
+        <div className="flex items-center justify-between border-b border-white/[0.08] pb-4 gap-3">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-orange-400 font-bold block truncate">
               Student Response Inspector
             </span>
-            <h2 className="font-academic text-xl font-bold text-white sm:text-2xl">
+            <h2 className="font-academic text-xl font-bold text-white sm:text-2xl truncate">
               {attempt.studentName} ({attempt.regNumber})
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400 mt-0.5 truncate">
               Assessment: <strong className="text-white">{attempt.assessmentTitle}</strong> · {attempt.department}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg border border-white/10 bg-white/5 text-gray-400 hover:text-white flex items-center justify-center text-sm"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-bold text-white transition-all cursor-pointer shrink-0"
+            title="Close"
           >
-            <i className="fas fa-times" />
+            <i className="fas fa-times text-orange-400" />
+            <span>Close</span>
           </button>
         </div>
 

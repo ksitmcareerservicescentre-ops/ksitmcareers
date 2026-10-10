@@ -1,5 +1,5 @@
 export const moduleCatalog = [
-  { slug: "readiness", title: "Job readiness assessments" },
+  { slug: "readiness", title: "Job Readiness Assessment" },
   { slug: "training", title: "Employability skills training" },
   { slug: "resume", title: "Resume builder" },
   { slug: "internship", title: "Virtual Internship" },

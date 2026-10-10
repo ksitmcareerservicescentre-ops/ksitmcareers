@@ -216,12 +216,16 @@ export function AdminControlCenter({
   logs?: AuditLogRow[];
   defaultTab?: string;
 }) {
-  const [active, setActive] = useState(defaultTab || "assessments");
-  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const [active, setActive] = useState(() => {
+    if (defaultTab === "assessments" || defaultTab === "readiness") return "modules";
+    return defaultTab || "modules";
+  });
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(() => {
+    if (defaultTab === "assessments" || defaultTab === "readiness") return "readiness";
+    return "readiness";
+  });
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
-  const [pinnedMenu, setPinnedMenu] = useState<string | null>(
-    defaultTab === "modules" ? "modules" : null,
-  );
+  const [pinnedMenu, setPinnedMenu] = useState<string | null>("modules");
   const [mobileExpanded, setMobileExpanded] = useState<Record<string, boolean>>(
     { modules: defaultTab === "modules" },
   );
@@ -335,11 +339,6 @@ export function AdminControlCenter({
     { id: "services", icon: "fa-briefcase", label: "Career services" },
     { id: "appointments", icon: "fa-calendar-check", label: "Appointments" },
     { id: "training", icon: "fa-play-circle", label: "Skills training" },
-    {
-      id: "assessments",
-      icon: "fa-clipboard-check",
-      label: "Readiness assessments",
-    },
     {
       id: "opportunities",
       icon: "fa-laptop-house",
@@ -840,10 +839,14 @@ export function AdminControlCenter({
       {/* Main Workspace Environment */}
       <section className="min-w-0 flex-1 space-y-6 lg:ml-64 lg:pl-6">
         {active === "modules" && (
-          <ModulesWorkspace
-            activeModuleSlug={activeSubmenu}
-            onSelectModule={(slug) => setActiveSubmenu(slug || null)}
-          />
+          activeSubmenu === "readiness" ? (
+            <AssessmentWorkspace />
+          ) : (
+            <ModulesWorkspace
+              activeModuleSlug={activeSubmenu}
+              onSelectModule={(slug) => setActiveSubmenu(slug || null)}
+            />
+          )
         )}
         {active === "staff" && <OfficerManagement initialOfficers={officers} />}
         {active === "overview" && (
@@ -919,9 +922,9 @@ export function AdminControlCenter({
                 ],
                 ["Training videos", "Manage learning videos", "training"],
                 [
-                  "Assessments",
-                  "Build readiness questions and recommendations",
-                  "assessments",
+                  "Job Readiness Assessment",
+                  "Build readiness questions and objective examinations",
+                  "readiness",
                 ],
                 [
                   "Opportunities",
@@ -931,7 +934,14 @@ export function AdminControlCenter({
               ].map(([title, description, id]) => (
                 <button
                   key={id}
-                  onClick={() => setActive(id)}
+                  onClick={() => {
+                    if (id === "readiness") {
+                      setActive("modules");
+                      setActiveSubmenu("readiness");
+                    } else {
+                      setActive(id);
+                    }
+                  }}
                   className="rounded-2xl border border-white/10 bg-[#101023] p-5 text-left transition hover:-translate-y-1 hover:border-[#FF7F24]/60"
                 >
                   <i className="fas fa-arrow-right float-right text-[#FF7F24]" />
