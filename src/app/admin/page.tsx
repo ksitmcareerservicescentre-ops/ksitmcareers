@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { site } from "@/config/site";
 import { eq, desc, and, or, like, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -151,19 +153,17 @@ export default async function SuperAdminDashboardPage() {
       {/* Top Admin Header */}
       <header className="fixed inset-x-0 top-0 z-40 bg-[#0A0A1A]/90 backdrop-blur-xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-[#FF7F24]/10 border border-[#FF7F24]/30 text-[#FF7F24] flex items-center justify-center font-bold text-sm">
-              K
-            </span>
-            <div>
-              <span className="text-sm font-extrabold tracking-tight text-white block">
-                KSITM Careers
-              </span>
-              <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest block -mt-1">
-                Super Admin Central
-              </span>
-            </div>
+          <Link href="/" className="inline-flex items-center group" aria-label="KSITM Home">
+            <Image
+              src={site.shield}
+              alt="KSITM Logo"
+              width={28}
+              height={28}
+              className="h-7 w-auto object-contain transition-transform group-hover:scale-105"
+              priority
+            />
           </Link>
+          <span className="sr-only">Super Admin Central</span>
         </div>
 
         <div className="flex items-center gap-4">

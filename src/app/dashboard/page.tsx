@@ -8,6 +8,7 @@ import {
   studentServiceEntitlements,
   careerServices,
   consultationRequests,
+  assessmentAttempts,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -108,12 +109,60 @@ export default async function StudentDashboardPage() {
     (e) => e.status === "ACTIVE",
   ).length;
 
+  let assignedAssessmentsCount = 0;
+  try {
+    const studentAttempts = await db
+      .select({ id: assessmentAttempts.id })
+      .from(assessmentAttempts)
+      .where(eq(assessmentAttempts.studentId, student.id));
+    assignedAssessmentsCount = studentAttempts.length;
+  } catch (err) {
+    console.error("[Dashboard] Error fetching assessment attempts:", err);
+  }
+
   return (
     <div className="min-h-screen bg-[#0A0A1A] text-white">
       <DashboardHeader student={student} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
-        <Link href="/dashboard/modules" className="block rounded-2xl border border-orange-400/30 bg-[#101023] p-5 text-white"><span className="text-lg font-bold">My Modules</span><span className="mt-2 block text-sm text-gray-400">Start assigned activities, continue your progress and view completed work.</span></Link>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link
+            href="/dashboard/modules"
+            className="group block rounded-2xl border border-orange-400/30 bg-[#101023] p-5 text-white transition-all hover:border-orange-500 hover:bg-[#14142d]"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-bold group-hover:text-orange-400 transition-colors">
+                My Modules
+              </span>
+              <i className="fas fa-arrow-right text-orange-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+            <span className="mt-2 block text-xs text-gray-400">
+              Start assigned activities, continue your progress and view completed work.
+            </span>
+          </Link>
+
+          <Link
+            href="/dashboard/assessments"
+            className="group block rounded-2xl border border-purple-400/30 bg-[#101023] p-5 text-white transition-all hover:border-purple-500 hover:bg-[#14142d]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold group-hover:text-purple-300 transition-colors">
+                  Job Readiness Assessments
+                </span>
+                {assignedAssessmentsCount > 0 && (
+                  <span className="rounded-full bg-purple-500/20 border border-purple-500/30 px-2 py-0.5 text-[10px] font-bold text-purple-300">
+                    {assignedAssessmentsCount} Assigned
+                  </span>
+                )}
+              </div>
+              <i className="fas fa-arrow-right text-purple-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+            <span className="mt-2 block text-xs text-gray-400">
+              Take assigned objective exams, test your workplace readiness, and view verified scores.
+            </span>
+          </Link>
+        </div>
         {/* Welcome Banner */}
         <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#40297B]/40 via-[#101023] to-[#FF7F24]/15 border border-white/10 p-6 sm:p-10">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">

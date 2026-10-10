@@ -684,8 +684,13 @@ export const assessments = pgTable(
     slug: text("slug").notNull().unique(),
     description: text("description").notNull(),
     category: text("category").notNull(),
+    timeLimitMinutes: integer("time_limit_minutes").default(30).notNull(),
+    passingScore: integer("passing_score").default(60).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
@@ -722,10 +727,10 @@ export const assessmentAttempts = pgTable(
       .notNull()
       .references(() => studentProfiles.id, { onDelete: "cascade" }),
     status: text("status", {
-      enum: ["IN_PROGRESS", "SUBMITTED", "REVIEWED"],
+      enum: ["ASSIGNED", "IN_PROGRESS", "SUBMITTED", "REVIEWED"],
     })
       .notNull()
-      .default("IN_PROGRESS"),
+      .default("ASSIGNED"),
     score: integer("score"),
     humanRecommendation: text("human_recommendation"),
     aiFeedback: text("ai_feedback"),

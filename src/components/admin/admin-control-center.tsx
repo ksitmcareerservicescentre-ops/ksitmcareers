@@ -11,6 +11,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ModulesWorkspace } from "@/components/admin/modules-workspace";
 import { OfficerManagement } from "@/components/admin/officer-management";
+import { AssessmentWorkspace } from "@/components/admin/assessment-workspace";
 import { moduleCatalog } from "@/lib/modules";
 import {
   bulkImportGalleryAction,
@@ -1252,12 +1253,7 @@ export function AdminControlCenter({
             </div>
           </div>
         )}
-        {active === "assessments" && (
-          <Placeholder
-            title="Job readiness assessments"
-            body="Create assessment templates, questions, attempts, scores and recommendations from the assessment workspace."
-          />
-        )}
+        {active === "assessments" && <AssessmentWorkspace />}
         {active === "opportunities" && (
           <Placeholder
             title="Virtual internships, job board and Career Fair Management"
