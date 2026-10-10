@@ -94,7 +94,7 @@ export function ModulesWorkspace({
           <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-orange-400">
             Super Admin Workspace
           </div>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+          <h2 className="font-academic mt-2 text-3xl font-extrabold tracking-tight text-white md:text-4xl">
             Modules
           </h2>
           <p className="mt-2 text-sm text-gray-400">
@@ -167,14 +167,14 @@ export function ModulesWorkspace({
                       d="M15 19l-7-7 7-7"
                     />
                   </svg>
-                  All Modules Library
+                  Modules
                 </button>
                 <span className="text-gray-600 text-xs">/</span>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400">
                   {getModuleMeta(focusedModule.slug).category}
                 </span>
               </div>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
+              <h2 className="font-academic mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
                 {focusedModule.title}
               </h2>
               <p className="mt-1 text-sm text-gray-400">
@@ -232,7 +232,7 @@ export function ModulesWorkspace({
                   <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400">
                     Pedagogical Framework
                   </span>
-                  <h3 className="text-lg font-bold text-white">
+                  <h3 className="font-academic text-lg font-bold text-white">
                     {getModuleMeta(focusedModule.slug).framework}
                   </h3>
                 </div>
@@ -498,7 +498,7 @@ export function ModulesWorkspace({
           <div className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-xl font-bold tracking-tight text-white">
+                <h3 className="font-academic text-xl font-bold tracking-tight text-white">
                   Curriculum Modules Library
                 </h3>
                 <p className="text-xs text-gray-400">
@@ -567,7 +567,7 @@ export function ModulesWorkspace({
                         <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">
                           {meta.category}
                         </span>
-                        <h4 className="mt-0.5 text-base font-bold tracking-tight text-white group-hover:text-orange-200 transition-colors">
+                        <h4 className="font-academic mt-0.5 text-base font-bold tracking-tight text-white group-hover:text-orange-200 transition-colors">
                           {item.title}
                         </h4>
                         <p className="mt-0.5 text-[11px] font-medium text-gray-300">

@@ -28,7 +28,11 @@ h2,
 h3,
 h4,
 .font-heading {
-  font-family: var(--font-heading), "Outfit", sans-serif;
+  font-family: var(--font-academic), "Newsreader", "Georgia", "Times New Roman", serif;
+}
+
+.font-academic {
+  font-family: var(--font-academic), "Newsreader", "Georgia", "Times New Roman", serif;
 }
 
 .perspective-800 {
@@ -709,4 +713,38 @@ h4,
 
 .text-link:hover {
   color: var(--purple);
+}
+
+/* Minimal Sleek Scrollbar with reduced idle opacity */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

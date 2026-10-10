@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
+import { Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { site } from "@/config/site";
 import { getCurrentUser } from "@/lib/auth/session";
 import "./globals.css";
 
-const heading = Outfit({
-  variable: "--font-heading",
+const academic = Newsreader({
+  variable: "--font-academic",
   subsets: ["latin"],
   display: "swap",
+  style: ["normal", "italic"],
 });
 const body = Plus_Jakarta_Sans({
   variable: "--font-body",
@@ -40,7 +41,7 @@ export default async function RootLayout({
   const user = await getCurrentUser();
   const headerUser = user ? { name: user.studentProfile?.fullName || user.staffProfile?.fullName || user.email, email: user.email, role: user.role } : null;
   return (
-    <html lang="en" className={`${heading.variable} ${body.variable}`}>
+    <html lang="en" className={`${academic.variable} ${body.variable}`}>
       <head>
         <link
           rel="stylesheet"

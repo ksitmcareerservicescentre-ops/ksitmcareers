@@ -92,15 +92,21 @@ The entire Modules ecosystem was elevated to 2026 modern-classic UI/UX design st
   - Action button (`Manage module →`) that triggers the slide-over workbench drawer
 - **Two-Tier Extended Submenu Sidebar (`admin-control-center.tsx`)**:
   - Tier 1 Primary Rail: Fixed obsidian sidebar (`w-64`) with brand logo, nav buttons, badges, and chevron submenu indicators.
-  - Tier 2 Submenu Extended Rail: Floating glassmorphic flyout drawer (`w-80`) displaying all 8 module titles with category icons, framework chips, live emerald status dots, and "All Modules Library".
+  - Tier 2 Submenu Extended Rail: Sleek, translucent glass flyout drawer (`w-72`) at 90% opacity (`bg-[#080814]/90 backdrop-blur-2xl`) seamlessly docked flush against Tier 1 with zero dividing shadow, hairline border, and matching minimal geometry:
+    - Minimized single-line items matching the primary rail height and design
+    - Customized FontAwesome icons tailored to each module matching the menus bar (`fa-clipboard-check`, `fa-graduation-cap`, `fa-file-alt`, `fa-laptop-code`, `fa-handshake`, `fa-briefcase`, `fa-calendar-check`, `fa-clock`)
+    - Prominently visible module names across full width
+    - Live emerald status dots and luminous amber active indicators
+    - Compact track filter input
+    - Auto-dimming ultra-thin custom scrollbar and interactive bouncing scroll down indicator (`animate-bounce`) whenever scrolling is required
   - Hover bridge with 280ms debounce timer for smooth cursor traversal between rails.
   - Auto-dismiss on submenu selection so clicking any module smoothly glides the flyout away and presents the unobstructed environment.
-  - Mobile responsive accordions for smaller devices.
+  - Mobile responsive accordions for smaller devices with matching customized icons.
 - **Focused Single Module Environment (`modules-workspace.tsx`)**:
   - Selecting any module from the extended submenu immediately renders that module's focused workspace environment.
-  - Includes breadcrumb navigation (`← All Modules Library / [Category]`), title, version badge, and `Manage in Workbench Drawer →` button.
+  - Includes breadcrumb navigation (`← Modules / [Category]`), title, version badge, and `Manage in Workbench Drawer →` button.
   - Features the full academic framework deep-dive card, 4-part requirements matrix, curriculum activity prompts review with requirement badges, clickable curated resource cards, student cohort search & assignment, and live assignment records.
-  - Clicking "All Modules Library" immediately restores the clean 8 Grid Cards library.
+  - Clicking "Modules" restores the clean 8 Grid Cards library.
 - **Slide-over Management Drawer Modal**: Clicking `Manage module →` opens a full-height, backdrop-blurred drawer housing:
   - Module selector combobox and live status badges
   - View tabswitcher (**Module Manager** and **Preview**)

@@ -55,21 +55,18 @@ To provide navigation following modern design practices:
 
 - **Two-Tier Desktop Sidebar**:
   - **Tier 1 (Primary Rail)**: Obsidian dark fixed navigation rail (`w-64`) with brand badge, system items, submenu badges, and chevron indicators.
-  - **Tier 2 (Submenu Extended Rail)**: Glassmorphic flyout drawer (`w-80`) positioned at `left-64` with obsidian elevation shadow, close trigger, and luxury submenu cards:
-    - `All Modules Library` (returns to the 8 Grid Cards view)
-    - `Job readiness assessments` (Diagnostic Core · Readiness Benchmark)
-    - `Employability skills training` (Skill Development · Behavioral Mastery)
-    - `Resume builder` (Career Assets · ATS Optimized)
-    - `Virtual Internship` (Experiential Learning · Industry Simulation)
-    - `Employer engagement` (Professional Networking · Networking Outreach)
-    - `Job board` (Search & Strategy · Opportunity Pipeline)
-    - `Career Fair Management` (Event Strategy · Event Conversion)
-    - `Appointment Scheduler` (Advisory Coaching · Targeted Coaching)
+  - **Tier 2 (Submenu Extended Rail)**: Sleek, translucent glass flyout drawer (`w-72`) at 90% opacity (`bg-[#080814]/90 backdrop-blur-2xl`) seamlessly docked flush against Tier 1 with zero dividing shadow, hairline border, and matching minimal geometry:
+    - Minimized single-line items matching the primary rail height and design
+    - Customized FontAwesome icons tailored to each module matching the menus bar (`fa-clipboard-check`, `fa-graduation-cap`, `fa-file-alt`, `fa-laptop-code`, `fa-handshake`, `fa-briefcase`, `fa-calendar-check`, `fa-clock`)
+    - Prominently visible module names across full width
+    - Live emerald status dots and luminous amber active indicators
+    - Compact track filter input
+    - Auto-dimming ultra-thin custom scrollbar and interactive bouncing scroll down indicator (`animate-bounce`) whenever scrolling is required
   - **Smooth Hover & Pinning Bridge**: Hovering over menu items with submenus opens the extended panel with a 280ms debounce bridge. Clicking an item selects it and glides the panel away to reveal the workspace, while clicking the rail item pins it.
-  - **Mobile Accordion Navigation**: Seamless collapsible nested accordions on smaller viewports with touch-friendly tap targets.
+  - **Mobile Accordion Navigation**: Seamless collapsible nested accordions on smaller viewports with matching customized icons and touch-friendly tap targets.
 - **Focused Single Module Environment**:
   - Selecting any individual module from the extended rail (or from the grid card) immediately renders that module's focused workspace environment.
-  - Features breadcrumb navigation (`← All Modules Library / [Category]`), title, version badge, published status, and direct `Manage in Workbench Drawer →` action.
+  - Features breadcrumb navigation (`← Modules / [Category]`), title, version badge, published status, and direct `Manage in Workbench Drawer →` action.
   - Displays the in-depth pedagogical framework card, the 4-part specific requirements matrix, an interactive curriculum questions review with requirement badges, curated HTTPS resource cards, student cohort search & assignment, and live module records.
 
 ## Assignment records

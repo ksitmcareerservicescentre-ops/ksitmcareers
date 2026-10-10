@@ -11,8 +11,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ModulesWorkspace } from "@/components/admin/modules-workspace";
 import { OfficerManagement } from "@/components/admin/officer-management";
-import { moduleCatalog, getModuleMeta } from "@/lib/modules";
-import { getModuleIcon } from "@/components/modules/module-icons";
+import { moduleCatalog } from "@/lib/modules";
 import {
   bulkImportGalleryAction,
   createLandingContentAction,
@@ -217,7 +216,7 @@ export function AdminControlCenter({
   defaultTab?: string;
 }) {
   const [active, setActive] = useState(defaultTab);
-  const [activeSubmenu, setActiveSubmenu] = useState<string | null>("all");
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [pinnedMenu, setPinnedMenu] = useState<string | null>("modules");
   const [mobileExpanded, setMobileExpanded] = useState<Record<string, boolean>>(
@@ -225,9 +224,12 @@ export function AdminControlCenter({
   );
   const [createSection, setCreateSection] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [submenuFilter, setSubmenuFilter] = useState("");
+  const [canScrollSubmenu, setCanScrollSubmenu] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const hoverTimer = useRef<NodeJS.Timeout | null>(null);
+  const submenuScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!mobileNavOpen) return;
@@ -262,64 +264,46 @@ export function AdminControlCenter({
 
   const [pending, startTransition] = useTransition();
 
-  const moduleSubmenus: SubmenuItem[] = [
-    {
-      id: "all",
-      label: "All Modules Library",
-      category: "Full Curriculum",
-      tag: "8 Tracks",
-      icon: "fa-th-large",
-    },
-    ...moduleCatalog.map((item) => {
-      const meta = getModuleMeta(item.slug);
-      return {
-        id: item.slug,
-        slug: item.slug,
-        label: item.title,
-        category: meta.category,
-        tag: meta.badge || meta.framework,
-        icon: item.slug,
-      };
-    }),
-  ];
+  const MODULE_ICONS: Record<string, string> = {
+    readiness: "fa-clipboard-check",
+    training: "fa-graduation-cap",
+    resume: "fa-file-alt",
+    internship: "fa-laptop-code",
+    employers: "fa-handshake",
+    jobs: "fa-briefcase",
+    "career-fair": "fa-calendar-check",
+    appointments: "fa-clock",
+  };
+
+  const moduleSubmenus: SubmenuItem[] = moduleCatalog.map((item) => ({
+    id: item.slug,
+    slug: item.slug,
+    label: item.title,
+    icon: MODULE_ICONS[item.slug] || "fa-layer-group",
+  }));
 
   const websiteSubmenus: SubmenuItem[] = [
     {
-      id: "all",
-      label: "Landing CMS Overview",
-      category: "Public Site",
-      tag: "CMS",
-      icon: "fa-sliders-h",
-    },
-    {
       id: "gallery",
       label: "Campus Gallery",
-      category: "Visual Assets",
-      tag: `${gallery.length} Records`,
       icon: "fa-images",
     },
     {
       id: "leadership",
       label: "Executive Leadership",
-      category: "Profiles",
-      tag: `${leadership.length} Leaders`,
       icon: "fa-users",
     },
     {
       id: "announcements",
       label: "Updates & Announcements",
-      category: "Broadcast",
-      tag: `${announcements.length} Posts`,
       icon: "fa-bullhorn",
     },
   ];
 
   const staffSubmenus: SubmenuItem[] = [
     {
-      id: "all",
+      id: "officers",
       label: "Officers Directory",
-      category: "Directory",
-      tag: `${officers.length} Staff`,
       icon: "fa-address-book",
     },
   ];
@@ -391,8 +375,8 @@ export function AdminControlCenter({
     if (hasSubmenus) {
       setPinnedMenu(id);
       setHoveredMenu(id);
-      if (id === "modules" && !activeSubmenu) {
-        setActiveSubmenu("all");
+      if (id === "modules") {
+        setActiveSubmenu(null);
       }
     } else {
       setPinnedMenu(null);
@@ -416,6 +400,29 @@ export function AdminControlCenter({
   const extendedMenuId =
     hoveredMenu || (pinnedMenu === active ? pinnedMenu : null);
   const extendedNav = nav.find((n) => n.id === extendedMenuId);
+
+  const submenus = extendedNav?.submenus || [];
+  const filteredSubmenus = !submenuFilter.trim()
+    ? submenus
+    : submenus.filter((s) => {
+        const q = submenuFilter.toLowerCase();
+        return (
+          s.label.toLowerCase().includes(q) ||
+          s.category?.toLowerCase().includes(q) ||
+          s.tag?.toLowerCase().includes(q)
+        );
+      });
+
+  const checkSubmenuScroll = () => {
+    const el = submenuScrollRef.current;
+    if (!el) return;
+    const hasMore = el.scrollHeight - el.scrollTop - el.clientHeight > 8;
+    setCanScrollSubmenu(hasMore);
+  };
+
+  useEffect(() => {
+    checkSubmenuScroll();
+  }, [filteredSubmenus, extendedMenuId]);
 
   const approve = (id: string, attended: boolean) =>
     startTransition(async () => {
@@ -446,21 +453,19 @@ export function AdminControlCenter({
         />
       )}
 
-      {/* Primary Desktop Sidebar Rail */}
-      <aside className="hidden lg:flex fixed left-0 top-14 bottom-0 z-30 w-64 flex-col border-r border-white/10 bg-[#080816]/95 backdrop-blur-2xl">
-        <div className="p-4 border-b border-white/[0.08]">
-          <div className="flex items-center gap-2.5">
-            <span className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 flex items-center justify-center font-black text-xs">
-              K
+      {/* Primary Desktop Sidebar Rail (Tier 1) */}
+      <aside className="hidden lg:flex fixed left-0 top-14 bottom-0 z-30 w-64 flex-col border-r border-white/[0.08] bg-[#080814]/98 backdrop-blur-2xl">
+        <div className="h-16 px-4 border-b border-white/[0.08] flex items-center gap-3">
+          <span className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/25 text-orange-400 flex items-center justify-center font-bold text-xs shadow-inner shrink-0">
+            K
+          </span>
+          <div className="leading-tight truncate">
+            <span className="font-academic text-sm font-semibold tracking-wide text-white block truncate">
+              KSITM Careers
             </span>
-            <div>
-              <span className="text-xs font-extrabold text-white block">
-                KSITM Careers
-              </span>
-              <span className="text-[10px] text-orange-400 font-bold uppercase tracking-wider block">
-                Super Admin Rail
-              </span>
-            </div>
+            <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 block truncate">
+              Super Admin Rail
+            </span>
           </div>
         </div>
 
@@ -479,33 +484,38 @@ export function AdminControlCenter({
                 <button
                   type="button"
                   onClick={() => handleMenuClick(item.id, hasSub)}
-                  className={`group flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-xs font-semibold transition-all duration-200 ${
+                  className={`group relative flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-all duration-150 ${
                     isCurrent
-                      ? "bg-gradient-to-r from-orange-500 to-amber-600 text-[#090915] font-black shadow-md shadow-orange-500/25"
+                      ? "bg-white/[0.08] text-white font-medium border border-white/15 shadow-[0_2px_12px_rgba(0,0,0,0.5)]"
                       : isHovered
-                        ? "bg-white/[0.08] text-white"
-                        : "text-gray-400 hover:bg-white/[0.04] hover:text-white"
+                        ? "bg-white/[0.04] text-white border border-transparent"
+                        : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200 border border-transparent"
                   }`}
                 >
-                  <div className="flex items-center gap-3 truncate">
+                  {/* Matching Left Amber Active Accent */}
+                  {isCurrent && (
+                    <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.6)]" />
+                  )}
+
+                  <div className="flex items-center gap-2.5 truncate min-w-0">
                     <i
                       aria-hidden="true"
-                      className={`fas ${item.icon} w-4 text-center text-xs ${
+                      className={`fas ${item.icon} w-4 text-center text-xs transition-colors shrink-0 ${
                         isCurrent
-                          ? "text-[#090915]"
-                          : "text-gray-400 group-hover:text-orange-400"
+                          ? "text-orange-400"
+                          : "text-gray-500 group-hover:text-gray-200"
                       }`}
                     />
                     <span className="truncate">{item.label}</span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
                     {item.badge && (
                       <span
-                        className={`rounded-md px-1.5 py-0.5 text-[10px] font-mono font-bold ${
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-mono ${
                           isCurrent
-                            ? "bg-[#090915]/20 text-[#090915]"
-                            : "bg-white/10 text-orange-400"
+                            ? "bg-orange-500/15 text-orange-300 font-semibold"
+                            : "bg-white/[0.06] text-gray-400"
                         }`}
                       >
                         {item.badge}
@@ -513,12 +523,10 @@ export function AdminControlCenter({
                     )}
                     {hasSub && (
                       <svg
-                        className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                          isCurrent
-                            ? "text-[#090915]"
-                            : isHovered
-                              ? "text-orange-400 translate-x-0.5"
-                              : "text-gray-600"
+                        className={`h-3 w-3 transition-transform duration-200 ${
+                          isCurrent || isHovered
+                            ? "text-orange-400 translate-x-0.5"
+                            : "text-gray-600"
                         }`}
                         fill="none"
                         stroke="currentColor"
@@ -527,7 +535,7 @@ export function AdminControlCenter({
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          strokeWidth={2.5}
+                          strokeWidth={2}
                           d="M9 5l7 7-7 7"
                         />
                       </svg>
@@ -539,12 +547,12 @@ export function AdminControlCenter({
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/[0.08]">
+        <div className="p-3 border-t border-white/[0.08]">
           <Link
             href="/"
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-gray-400 hover:border-orange-500/40 hover:text-white transition-all"
+            className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-xs font-medium text-gray-400 hover:border-orange-500/30 hover:text-white transition-all"
           >
-            <i className="fas fa-external-link-alt text-orange-400 text-[11px]" />
+            <i className="fas fa-external-link-alt text-orange-400 text-[10px]" />
             <span>View Public Portal</span>
           </Link>
         </div>
@@ -552,30 +560,26 @@ export function AdminControlCenter({
 
       {/* Extended Submenu Sidebar Flyout Panel (Tier 2 Desktop) */}
       <aside
-        className={`hidden lg:flex fixed left-64 top-14 bottom-0 z-30 w-80 flex-col border-r border-white/10 bg-[#0d0d24]/95 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.85)] transition-all duration-300 ease-out ${
+        className={`hidden lg:flex fixed left-64 top-14 bottom-0 z-20 w-72 flex-col border-r border-white/[0.08] bg-[#080814]/90 backdrop-blur-2xl transition-all duration-300 ease-out ${
           extendedMenuId && extendedNav?.submenus?.length
             ? "translate-x-0 opacity-100 pointer-events-auto"
-            : "-translate-x-4 opacity-0 pointer-events-none"
+            : "-translate-x-3 opacity-0 pointer-events-none"
         }`}
         onMouseEnter={handleSubmenuEnter}
         onMouseLeave={handleSubmenuLeave}
       >
         {extendedNav && extendedNav.submenus && (
           <>
-            <div className="p-4 border-b border-white/[0.08] flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">
-                    Submenu Extended Rail
-                  </span>
-                  <span className="text-gray-600 text-xs">·</span>
-                  <span className="text-[10px] font-semibold text-gray-400">
-                    {extendedNav.submenus.length} Options
-                  </span>
-                </div>
-                <h3 className="text-sm font-extrabold text-white mt-0.5">
-                  {extendedNav.label}
-                </h3>
+            <div className="h-16 px-4 border-b border-white/[0.08] flex items-center justify-between shrink-0">
+              <div className="leading-tight truncate">
+                <span className="text-[10px] font-mono tracking-widest uppercase text-orange-400/90 block truncate">
+                  {extendedNav.label} Submenus
+                </span>
+                <span className="font-academic text-sm font-semibold tracking-wide text-white block truncate">
+                  {extendedNav.id === "modules"
+                    ? "Curriculum Modules"
+                    : extendedNav.label}
+                </span>
               </div>
               <button
                 type="button"
@@ -583,87 +587,94 @@ export function AdminControlCenter({
                   setPinnedMenu(null);
                   setHoveredMenu(null);
                 }}
-                className="rounded-lg p-1.5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                title="Close submenu"
+                className="w-7 h-7 rounded-lg border border-white/10 bg-white/[0.03] text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors flex items-center justify-center text-xs shrink-0"
+                title="Dismiss submenus"
               >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <i className="fas fa-times" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {extendedNav.submenus.map((sub) => {
+            {/* Quick Filter Input */}
+            {submenus.length > 6 && (
+              <div className="p-2.5 border-b border-white/[0.04] shrink-0">
+                <div className="relative">
+                  <i className="fas fa-search absolute left-2.5 top-2.5 text-[10px] text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Filter tracks…"
+                    value={submenuFilter}
+                    onChange={(e) => setSubmenuFilter(e.target.value)}
+                    className="w-full rounded-md border border-white/[0.08] bg-white/[0.02] pl-7 pr-3 py-1 text-[11px] text-gray-200 placeholder-gray-500 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/30"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div
+              ref={submenuScrollRef}
+              onScroll={checkSubmenuScroll}
+              className="flex-1 overflow-y-auto p-2.5 space-y-1 custom-scrollbar [scrollbar-width:thin]"
+            >
+              {filteredSubmenus.map((sub) => {
                 const isSubActive =
-                  active === extendedNav.id &&
-                  (activeSubmenu === sub.id ||
-                    (!activeSubmenu && sub.id === "all"));
+                  active === extendedNav.id && activeSubmenu === sub.id;
                 return (
                   <button
                     key={sub.id}
                     type="button"
                     onClick={() => handleSubmenuClick(extendedNav.id, sub.id)}
-                    className={`group flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${
+                    className={`group relative flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-all duration-150 ${
                       isSubActive
-                        ? "border-orange-500/70 bg-gradient-to-r from-orange-500/15 via-[#181836] to-[#0c0c20] shadow-[0_0_20px_rgba(249,115,22,0.15)] ring-1 ring-orange-500/30"
-                        : "border-white/[0.06] bg-black/30 hover:border-orange-500/40 hover:bg-[#141430] hover:shadow-lg"
+                        ? "bg-white/[0.08] text-white font-medium border border-white/15 shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
+                        : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200 border border-transparent"
                     }`}
                   >
-                    <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
-                        isSubActive
-                          ? "border-orange-500/50 bg-orange-500/20 text-orange-300"
-                          : "border-white/10 bg-white/5 text-gray-400 group-hover:border-orange-500/30 group-hover:bg-orange-500/10 group-hover:text-orange-400"
-                      }`}
-                    >
-                      {sub.slug ? (
-                        getModuleIcon(sub.slug, "h-4 w-4")
-                      ) : (
-                        <i
-                          className={`fas ${sub.icon || "fa-layer-group"} text-xs`}
-                        />
-                      )}
+                    {/* Matching Left Amber Active Accent */}
+                    {isSubActive && (
+                      <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.6)]" />
+                    )}
+
+                    <div className="flex items-center gap-2.5 truncate min-w-0 flex-1">
+                      <i
+                        aria-hidden="true"
+                        className={`fas ${sub.icon || "fa-cube"} w-4 text-center text-xs shrink-0 transition-colors ${
+                          isSubActive
+                            ? "text-orange-400"
+                            : "text-gray-500 group-hover:text-gray-300"
+                        }`}
+                      />
+                      <span
+                        className={`truncate text-xs font-medium ${
+                          isSubActive
+                            ? "text-white"
+                            : "text-gray-300 group-hover:text-white"
+                        }`}
+                      >
+                        {sub.label}
+                      </span>
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-1">
-                        <span
-                          className={`text-xs font-bold truncate ${
-                            isSubActive
-                              ? "text-orange-400"
-                              : "text-white group-hover:text-orange-200"
-                          }`}
-                        >
-                          {sub.label}
-                        </span>
-                        {sub.slug && (
-                          <span className="flex h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] font-semibold text-gray-400 truncate">
-                          {sub.category}
-                        </span>
-                        <span className="text-gray-600 text-[10px]">·</span>
-                        <span className="text-[10px] text-gray-500 truncate">
-                          {sub.tag}
-                        </span>
-                      </div>
-                    </div>
+                    <span
+                      className={`ml-2 w-1.5 h-1.5 rounded-full shrink-0 transition-all ${
+                        isSubActive
+                          ? "bg-emerald-400 shadow-[0_0_6px_#34d399]"
+                          : "bg-emerald-500/40 group-hover:bg-emerald-400/70"
+                      }`}
+                    />
                   </button>
                 );
               })}
             </div>
+
+            {/* Subtle Bouncing Scroll Indicator when scrollable */}
+            {canScrollSubmenu && (
+              <div className="pointer-events-none absolute bottom-2 left-0 right-0 flex justify-center z-20">
+                <div className="animate-bounce flex items-center gap-1.5 rounded-full bg-orange-500/15 border border-orange-500/30 px-2.5 py-0.5 text-[10px] text-orange-300 backdrop-blur-md shadow-lg shadow-black/40">
+                  <span className="text-[9px] font-mono tracking-wider">Scroll</span>
+                  <i className="fas fa-chevron-down text-[8px]" />
+                </div>
+              </div>
+            )}
           </>
         )}
       </aside>
@@ -677,24 +688,29 @@ export function AdminControlCenter({
         inert={!mobileNavOpen}
         className={`${
           mobileNavOpen ? "translate-x-0" : "-translate-x-full"
-        } fixed bottom-0 left-0 top-0 z-[60] w-[min(22rem,90vw)] overflow-y-auto border-r border-white/10 bg-[#0c0c20] p-4 shadow-2xl transition-transform duration-300 lg:hidden`}
+        } fixed bottom-0 left-0 top-0 z-[60] w-[min(22rem,90vw)] overflow-y-auto border-r border-white/[0.08] bg-[#080814]/98 backdrop-blur-2xl p-4 shadow-2xl transition-transform duration-300 lg:hidden`}
       >
-        <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 flex items-center justify-center font-bold text-xs">
+        <div className="flex items-center justify-between mb-4 border-b border-white/[0.08] pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/25 text-orange-400 flex items-center justify-center font-bold text-xs shrink-0">
               K
             </span>
-            <span className="text-xs font-bold text-white">
-              Super Admin Workspace
-            </span>
+            <div className="leading-tight">
+              <span className="font-academic text-sm font-semibold tracking-wide text-white block">
+                KSITM Careers
+              </span>
+              <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 block">
+                Super Admin Mobile
+              </span>
+            </div>
           </div>
           <button
             ref={closeButton}
             type="button"
             onClick={() => setMobileNavOpen(false)}
-            className="rounded-lg border border-white/20 p-1.5 text-xs text-gray-300"
+            className="w-7 h-7 rounded-lg border border-white/10 bg-white/[0.03] text-gray-400 hover:text-white flex items-center justify-center text-xs"
           >
-            Close
+            <i className="fas fa-times" />
           </button>
         </div>
 
@@ -709,21 +725,32 @@ export function AdminControlCenter({
                   <button
                     type="button"
                     onClick={() => handleMenuClick(item.id, hasSub)}
-                    className={`flex flex-1 items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${
+                    className={`group relative flex flex-1 items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-all duration-150 ${
                       isCurrent
-                        ? "bg-gradient-to-r from-orange-500 to-amber-600 text-[#090915] font-extrabold"
-                        : "text-gray-300 hover:bg-[#40297B] hover:text-white"
+                        ? "bg-white/[0.08] text-white font-medium border border-white/15 shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
+                        : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200 border border-transparent"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    {isCurrent && (
+                      <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.6)]" />
+                    )}
+                    <div className="flex items-center gap-2.5 truncate">
                       <i
                         aria-hidden="true"
-                        className={`fas ${item.icon} w-4`}
+                        className={`fas ${item.icon} w-4 text-center text-xs shrink-0 ${
+                          isCurrent ? "text-orange-400" : "text-gray-500 group-hover:text-gray-200"
+                        }`}
                       />
-                      {item.label}
+                      <span className="truncate">{item.label}</span>
                     </div>
                     {item.badge && (
-                      <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-mono text-orange-400">
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-mono ${
+                          isCurrent
+                            ? "bg-orange-500/15 text-orange-300 font-semibold"
+                            : "bg-white/[0.06] text-gray-400"
+                        }`}
+                      >
                         {item.badge}
                       </span>
                     )}
@@ -733,11 +760,11 @@ export function AdminControlCenter({
                     <button
                       type="button"
                       onClick={() => toggleMobileAccordion(item.id)}
-                      className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-gray-400 hover:text-white"
+                      className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-gray-400 hover:text-white"
                       aria-label={`Toggle ${item.label} submenus`}
                     >
                       <svg
-                        className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90 text-orange-400" : ""}`}
+                        className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-90 text-orange-400" : ""}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -755,34 +782,38 @@ export function AdminControlCenter({
 
                 {/* Submenus Accordion on Mobile */}
                 {hasSub && isExpanded && item.submenus && (
-                  <div className="pl-4 space-y-1 border-l border-white/10 ml-3 py-1">
+                  <div className="pl-3 space-y-1 border-l border-white/[0.08] ml-3 py-1">
                     {item.submenus.map((sub) => {
                       const isSubActive =
-                        active === item.id &&
-                        (activeSubmenu === sub.id ||
-                          (!activeSubmenu && sub.id === "all"));
+                        active === item.id && activeSubmenu === sub.id;
                       return (
                         <button
                           key={sub.id}
                           type="button"
                           onClick={() => handleSubmenuClick(item.id, sub.id)}
-                          className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs ${
+                          className={`group relative flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs transition-all ${
                             isSubActive
-                              ? "bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30"
-                              : "text-gray-400 hover:text-white hover:bg-white/5"
+                              ? "bg-white/[0.08] text-white font-medium border border-white/15"
+                              : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
                           }`}
                         >
-                          <div className="flex items-center gap-2 truncate">
-                            {sub.slug &&
-                              getModuleIcon(
-                                sub.slug,
-                                "h-3.5 w-3.5 text-orange-400",
-                              )}
+                          {isSubActive && (
+                            <span className="absolute left-0 top-1 bottom-1 w-[2.5px] rounded-r bg-orange-400" />
+                          )}
+                          <div className="flex items-center gap-2.5 truncate min-w-0">
+                            <i
+                              aria-hidden="true"
+                              className={`fas ${sub.icon || "fa-cube"} text-xs w-3.5 text-center shrink-0 ${
+                                isSubActive ? "text-orange-400" : "text-gray-500"
+                              }`}
+                            />
                             <span className="truncate">{sub.label}</span>
                           </div>
-                          {sub.slug && (
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                          )}
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 ml-1.5 ${
+                              isSubActive ? "bg-emerald-400" : "bg-emerald-500/40"
+                            }`}
+                          />
                         </button>
                       );
                     })}
@@ -793,7 +824,7 @@ export function AdminControlCenter({
           })}
         </nav>
 
-        <div className="mt-6 border-t border-white/10 pt-4">
+        <div className="mt-6 border-t border-white/[0.08] pt-4">
           <Link
             href="/"
             className="flex items-center gap-2 px-3 text-xs text-gray-400 hover:text-orange-400"
@@ -807,8 +838,8 @@ export function AdminControlCenter({
       <section className="min-w-0 flex-1 space-y-6 lg:ml-64 lg:pl-6">
         {active === "modules" && (
           <ModulesWorkspace
-            activeModuleSlug={activeSubmenu === "all" ? null : activeSubmenu}
-            onSelectModule={(slug) => setActiveSubmenu(slug || "all")}
+            activeModuleSlug={activeSubmenu}
+            onSelectModule={(slug) => setActiveSubmenu(slug || null)}
           />
         )}
         {active === "staff" && <OfficerManagement initialOfficers={officers} />}
