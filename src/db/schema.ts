@@ -51,6 +51,36 @@ export const users = pgTable(
   ],
 );
 
+export const studentMasterList = pgTable(
+  "student_master_list",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    regNumber: text("reg_number").notNull().unique(),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    middleName: text("middle_name"),
+    fullName: text("full_name").notNull(),
+    department: text("department"),
+    level: text("level"),
+    phone: text("phone"),
+    isRegistered: boolean("is_registered").notNull().default(false),
+    registeredAt: timestamp("registered_at", { withTimezone: true }),
+    registeredUserId: uuid("registered_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("master_reg_number_idx").on(table.regNumber),
+    index("master_is_registered_idx").on(table.isRegistered),
+  ],
+);
+
 export const studentProfiles = pgTable(
   "student_profiles",
   {
@@ -59,11 +89,18 @@ export const studentProfiles = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" })
       .unique(),
+    masterRecordId: uuid("master_record_id").references(
+      () => studentMasterList.id,
+      { onDelete: "set null" },
+    ),
     regNumber: text("reg_number").notNull().unique(),
     fullName: text("full_name").notNull(),
     department: text("department"),
     level: text("level"),
     phone: text("phone"),
+    bio: text("bio"),
+    avatarUrl: text("avatar_url"),
+    linkedInUrl: text("linkedin_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -74,6 +111,7 @@ export const studentProfiles = pgTable(
   (table) => [
     index("students_reg_number_idx").on(table.regNumber),
     index("students_user_id_idx").on(table.userId),
+    index("students_master_record_idx").on(table.masterRecordId),
   ],
 );
 
@@ -88,6 +126,10 @@ export const staffProfiles = pgTable(
     fullName: text("full_name").notNull(),
     staffCode: text("staff_code").unique(),
     designation: text("designation"),
+    bio: text("bio"),
+    avatarUrl: text("avatar_url"),
+    linkedInUrl: text("linkedin_url"),
+    phone: text("phone"),
     canManageAppointments: boolean("can_manage_appointments")
       .notNull()
       .default(true),
@@ -906,3 +948,78 @@ export const moduleAssignments = pgTable("module_assignments", {
   index("module_assignments_student_idx").on(t.studentId),
   check("module_assignment_lifecycle", sql`(${t.status} = 'ASSIGNED' AND ${t.startedAt} IS NULL AND ${t.completedAt} IS NULL) OR (${t.status} = 'IN_PROGRESS' AND ${t.startedAt} IS NOT NULL AND ${t.completedAt} IS NULL) OR (${t.status} = 'COMPLETED' AND ${t.startedAt} IS NOT NULL AND ${t.completedAt} IS NOT NULL AND ${t.completedAt} >= ${t.startedAt})`),
 ]);
+
+// ============================================================
+// 11. EMPLOYABILITY SKILLS TRAINING & EDUCATIONAL MATERIALS
+// ============================================================
+
+export const employabilityResources = pgTable(
+  "employability_resources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    category: text("category").notNull(),
+    resourceType: text("resource_type").notNull().default("DOCUMENT"),
+    resourceAddress: text("resource_address").notNull(),
+    uploaderUserId: uuid("uploader_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    uploaderName: text("uploader_name").notNull(),
+    uploaderRole: text("uploader_role").notNull().default("Career Officer"),
+    uploaderAvatarUrl: text("uploader_avatar_url"),
+    uploaderBio: text("uploader_bio"),
+    uploaderLinkedIn: text("uploader_linkedin"),
+    whyShared: text("why_shared").notNull(),
+    howToUse: text("how_to_use").notNull(),
+    targetAudience: text("target_audience").notNull().default("All Students"),
+    isPublished: boolean("is_published").notNull().default(true),
+    viewCount: integer("view_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("employability_resources_cat_idx").on(table.category),
+    index("employability_resources_uploader_idx").on(table.uploaderUserId),
+    index("employability_resources_published_idx").on(table.isPublished),
+  ],
+);
+
+// ============================================================
+// 12. STUDENT ACADEMIC DOSSIER, OCCURRENCES & MILESTONES
+// ============================================================
+
+export const studentOccurrences = pgTable(
+  "student_occurrences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => studentProfiles.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    actorName: text("actor_name").notNull().default("Career Staff"),
+    category: text("category").notNull(), // "ACHIEVEMENT", "IMPROVEMENT", "COUNSELING_NOTE", "OCCURRENCE", "ASSESSMENT_RESULT"
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    actionTaken: text("action_taken"),
+    occurrenceDate: timestamp("occurrence_date", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("student_occurrences_student_idx").on(table.studentId),
+    index("student_occurrences_category_idx").on(table.category),
+    index("student_occurrences_date_idx").on(table.occurrenceDate),
+  ],
+);
+
+export type StudentMasterRecord = typeof studentMasterList.$inferSelect;
+export type NewStudentMasterRecord = typeof studentMasterList.$inferInsert;

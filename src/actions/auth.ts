@@ -6,12 +6,15 @@ import { db } from "@/db";
 import {
   users,
   studentProfiles,
+  studentMasterList,
+  studentOccurrences,
   careerServices,
   studentServiceEntitlements,
 } from "@/db/schema";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySession } from "@/lib/auth/session";
 import { recordAuditLog } from "@/lib/audit";
+import { validateStudentNamesTally } from "@/lib/validators";
 
 export interface AuthActionResult {
   success?: boolean;
@@ -22,12 +25,17 @@ export interface AuthActionResult {
 
 /**
  * Server action to register a new student account.
+ * Authenticates registration number and First/Second Name against the institutional master list.
  */
 export async function registerStudentAction(
   _prevState: AuthActionResult | null,
   formData: FormData,
 ): Promise<AuthActionResult> {
-  const fullName = formData.get("fullName")?.toString().trim() || "";
+  let firstName = formData.get("firstName")?.toString().trim() || "";
+  let secondName =
+    (formData.get("secondName") || formData.get("lastName"))?.toString().trim() ||
+    "";
+  let fullName = formData.get("fullName")?.toString().trim() || "";
   const regNumber = formData.get("regNumber")?.toString().trim() || "";
   const email = formData.get("email")?.toString().trim().toLowerCase() || "";
   const department = formData.get("department")?.toString().trim() || null;
@@ -36,10 +44,30 @@ export async function registerStudentAction(
   const password = formData.get("password")?.toString() || "";
   const confirmPassword = formData.get("confirmPassword")?.toString() || "";
 
+  // Support fallback parsing if fullName was provided without individual fields
+  if (!firstName || !secondName) {
+    if (fullName) {
+      const parts = fullName.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        if (!firstName) firstName = parts[0];
+        if (!secondName) secondName = parts.slice(1).join(" ");
+      }
+    }
+  }
+
+  if (!fullName && (firstName || secondName)) {
+    fullName = [firstName, secondName].filter(Boolean).join(" ");
+  }
+
   const fieldErrors: Record<string, string> = {};
 
-  if (!fullName || fullName.length < 3) {
-    fieldErrors.fullName = "Full name must be at least 3 characters long.";
+  if (!firstName || firstName.length < 2) {
+    fieldErrors.firstName = "First name is required (min. 2 characters).";
+  }
+
+  if (!secondName || secondName.length < 2) {
+    fieldErrors.secondName =
+      "Second name / Surname is required (min. 2 characters).";
   }
 
   if (!regNumber || regNumber.length < 3) {
@@ -80,7 +108,26 @@ export async function registerStudentAction(
       };
     }
 
-    // 2. Check if registration number already exists
+    // 2. Authenticate against KSITM Institutional Student Master List
+    const [masterRecord] = await db
+      .select()
+      .from(studentMasterList)
+      .where(
+        sql`upper(${studentMasterList.regNumber}) = upper(${normalizedRegNumber})`,
+      )
+      .limit(1);
+
+    if (!masterRecord) {
+      return {
+        error: `Institutional Verification Failed: Registration Number "${normalizedRegNumber}" was not found in the official KSITM institutional master records. Only accredited enrolled students may register. Please verify your Matriculation / Registration Number or contact the KSITM Registry / Career Services Centre.`,
+        fieldErrors: {
+          regNumber:
+            "Registration number not found in institutional master list.",
+        },
+      };
+    }
+
+    // 3. Check if registration number already registered in master list or active student profiles
     const [existingReg] = await db
       .select({ id: studentProfiles.id })
       .from(studentProfiles)
@@ -89,18 +136,40 @@ export async function registerStudentAction(
       )
       .limit(1);
 
-    if (existingReg) {
+    if (masterRecord.isRegistered || existingReg) {
       return {
-        error:
-          "This registration number is already registered. Please sign in.",
-        fieldErrors: { regNumber: "Registration number already registered." },
+        error: `Registration Number "${normalizedRegNumber}" is already registered. Please sign in with your credentials or reset your password if forgotten.`,
+        fieldErrors: {
+          regNumber: "Account already exists for this registration number.",
+        },
       };
     }
 
-    // 3. Hash password securely
+    // 4. Authenticate First and Second Name tally with institutional master record
+    const nameCheck = validateStudentNamesTally(
+      firstName,
+      secondName,
+      masterRecord.firstName,
+      masterRecord.lastName,
+      masterRecord.middleName,
+      masterRecord.fullName,
+    );
+
+    if (!nameCheck.matches) {
+      return {
+        error: `Identity Authentication Failed: The names provided ("${firstName} ${secondName}") do not tally with official institutional master records for ${normalizedRegNumber}. Please ensure your First and Second Name strictly match your official KSITM admission documents.`,
+        fieldErrors: {
+          firstName: "First name does not tally with institutional records.",
+          secondName:
+            "Second name / Surname does not tally with institutional records.",
+        },
+      };
+    }
+
+    // 5. Hash password securely
     const passwordHash = await hashPassword(password);
 
-    // 4. Create User record
+    // 6. Create User record
     const [newUser] = await db
       .insert(users)
       .values({
@@ -111,18 +180,45 @@ export async function registerStudentAction(
       })
       .returning({ id: users.id, email: users.email });
 
-    // 5. Create Student Profile record
+    // Official data from master record takes precedence for institutional consistency
+    const resolvedFullName = masterRecord.fullName || `${firstName} ${secondName}`;
+    const resolvedDepartment = masterRecord.department || department;
+    const resolvedLevel = masterRecord.level || level;
+    const resolvedPhone = phone || masterRecord.phone;
+
+    // 7. Create Student Profile record linked to master record
     const [newStudent] = await db
       .insert(studentProfiles)
       .values({
         userId: newUser.id,
+        masterRecordId: masterRecord.id,
         regNumber: normalizedRegNumber,
-        fullName,
-        department,
-        level,
-        phone,
+        fullName: resolvedFullName,
+        department: resolvedDepartment,
+        level: resolvedLevel,
+        phone: resolvedPhone,
       })
       .returning({ id: studentProfiles.id });
+
+    // 8. Update institutional master list entry to mark registered
+    await db
+      .update(studentMasterList)
+      .set({
+        isRegistered: true,
+        registeredAt: new Date(),
+        registeredUserId: newUser.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(studentMasterList.id, masterRecord.id));
+
+    // 9. Record initial academic milestone occurrence in dossier
+    await db.insert(studentOccurrences).values({
+      studentId: newStudent.id,
+      category: "MILESTONE",
+      title: "Matriculation Verified & Account Activated",
+      description: `Student verified against KSITM institutional master records for ${normalizedRegNumber} (${masterRecord.fullName}). Profile activated.`,
+      actorName: "KSITM Automated Registry Gateway",
+    });
 
     // 6. Provision initial service entitlements
     const allServices = await db

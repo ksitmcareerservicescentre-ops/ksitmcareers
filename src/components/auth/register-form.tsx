@@ -74,43 +74,91 @@ export function RegisterForm() {
           </div>
         )}
 
+        {/* Institutional Verification Notice */}
+        <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs flex items-start gap-3">
+          <i
+            className="fas fa-shield-alt text-amber-400 mt-0.5 text-base shrink-0"
+            aria-hidden="true"
+          />
+          <div>
+            <p className="font-semibold text-amber-300">
+              Institutional Master List Verification
+            </p>
+            <p className="text-gray-300 mt-0.5 leading-relaxed">
+              Your Registration Number, First Name, and Second Name (Surname)
+              must match the official KSITM institutional records. Accounts are
+              strictly provisioned for enrolled students.
+            </p>
+          </div>
+        </div>
+
         <form action={formAction} noValidate className="space-y-6">
           <div className="grid sm:grid-cols-2 gap-5">
-            {/* Full Name */}
+            {/* First Name */}
             <div>
               <label
-                htmlFor="fullName"
+                htmlFor="firstName"
                 className="block text-xs font-bold uppercase tracking-wider text-gray-300 mb-2"
               >
-                Full Name <span className="text-[#FF7F24]">*</span>
+                First Name <span className="text-[#FF7F24]">*</span>
               </label>
               <input
-                id="fullName"
-                name="fullName"
+                id="firstName"
+                name="firstName"
                 type="text"
-                autoComplete="name"
+                autoComplete="given-name"
                 required
-                placeholder="e.g. Amina Yusuf"
+                placeholder="e.g. Amina"
                 className={`w-full px-4 py-3 rounded-xl bg-white/5 border ${
-                  state?.fieldErrors?.fullName
+                  state?.fieldErrors?.firstName
                     ? "border-red-500"
                     : "border-white/15 focus:border-[#FF7F24]"
                 } text-white placeholder-gray-500 text-sm transition-colors outline-none focus:ring-1 focus:ring-[#FF7F24]`}
               />
-              {state?.fieldErrors?.fullName && (
+              {state?.fieldErrors?.firstName && (
                 <p className="text-red-400 text-xs mt-1">
-                  {state.fieldErrors.fullName}
+                  {state.fieldErrors.firstName}
                 </p>
               )}
             </div>
 
+            {/* Second Name / Surname */}
+            <div>
+              <label
+                htmlFor="secondName"
+                className="block text-xs font-bold uppercase tracking-wider text-gray-300 mb-2"
+              >
+                Second Name / Surname <span className="text-[#FF7F24]">*</span>
+              </label>
+              <input
+                id="secondName"
+                name="secondName"
+                type="text"
+                autoComplete="family-name"
+                required
+                placeholder="e.g. Yusuf"
+                className={`w-full px-4 py-3 rounded-xl bg-white/5 border ${
+                  state?.fieldErrors?.secondName
+                    ? "border-red-500"
+                    : "border-white/15 focus:border-[#FF7F24]"
+                } text-white placeholder-gray-500 text-sm transition-colors outline-none focus:ring-1 focus:ring-[#FF7F24]`}
+              />
+              {state?.fieldErrors?.secondName && (
+                <p className="text-red-400 text-xs mt-1">
+                  {state.fieldErrors.secondName}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-5">
             {/* Registration Number */}
             <div>
               <label
                 htmlFor="regNumber"
                 className="block text-xs font-bold uppercase tracking-wider text-gray-300 mb-2"
               >
-                Registration Number <span className="text-[#FF7F24]">*</span>
+                KSITM Registration Number <span className="text-[#FF7F24]">*</span>
               </label>
               <input
                 id="regNumber"
@@ -130,9 +178,7 @@ export function RegisterForm() {
                 </p>
               )}
             </div>
-          </div>
 
-          <div className="grid sm:grid-cols-2 gap-5">
             {/* Email Address */}
             <div>
               <label
@@ -160,7 +206,9 @@ export function RegisterForm() {
                 </p>
               )}
             </div>
+          </div>
 
+          <div className="grid sm:grid-cols-2 gap-5">
             {/* Phone Number */}
             <div>
               <label

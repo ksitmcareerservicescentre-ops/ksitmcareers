@@ -12,6 +12,10 @@ import Image from "next/image";
 import { ModulesWorkspace } from "@/components/admin/modules-workspace";
 import { OfficerManagement } from "@/components/admin/officer-management";
 import { AssessmentWorkspace } from "@/components/admin/assessment-workspace";
+import { EmployabilityWorkspace } from "@/components/admin/employability-workspace";
+import { StudentsWorkspace } from "@/components/admin/students-workspace";
+import { AppointmentSchedulerWorkspace } from "@/components/admin/appointment-scheduler-workspace";
+import { ProfileSettingsModal } from "@/components/profile/profile-settings-modal";
 import { moduleCatalog } from "@/lib/modules";
 import {
   bulkImportGalleryAction,
@@ -233,6 +237,7 @@ export function AdminControlCenter({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [submenuFilter, setSubmenuFilter] = useState("");
   const [canScrollSubmenu, setCanScrollSubmenu] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const hoverTimer = useRef<NodeJS.Timeout | null>(null);
@@ -323,6 +328,12 @@ export function AdminControlCenter({
       badge: "8",
       submenus: moduleSubmenus,
     },
+    {
+      id: "students",
+      icon: "fa-user-graduate",
+      label: "Students",
+      badge: String(students.length),
+    },
     { id: "overview", icon: "fa-chart-line", label: "Overview" },
     {
       id: "staff",
@@ -331,14 +342,17 @@ export function AdminControlCenter({
       submenus: staffSubmenus,
     },
     {
+      id: "appointments",
+      icon: "fa-calendar-check",
+      label: "Appointment Scheduler",
+    },
+    {
       id: "website",
       icon: "fa-window-maximize",
       label: "Landing page",
       submenus: websiteSubmenus,
     },
     { id: "services", icon: "fa-briefcase", label: "Career services" },
-    { id: "appointments", icon: "fa-calendar-check", label: "Appointments" },
-    { id: "training", icon: "fa-play-circle", label: "Skills training" },
     {
       id: "opportunities",
       icon: "fa-laptop-house",
@@ -826,7 +840,15 @@ export function AdminControlCenter({
           })}
         </nav>
 
-        <div className="mt-6 border-t border-white/[0.08] pt-4">
+        <div className="mt-6 border-t border-white/[0.08] pt-4 space-y-2">
+          <button
+            type="button"
+            onClick={() => setProfileModalOpen(true)}
+            className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/10 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors cursor-pointer"
+          >
+            <i className="fas fa-user-circle text-orange-400 text-sm" />
+            <span>Profile & Security</span>
+          </button>
           <Link
             href="/"
             className="flex items-center gap-2 px-3 text-xs text-gray-400 hover:text-orange-400"
@@ -841,6 +863,8 @@ export function AdminControlCenter({
         {active === "modules" && (
           activeSubmenu === "readiness" ? (
             <AssessmentWorkspace />
+          ) : activeSubmenu === "training" ? (
+            <EmployabilityWorkspace />
           ) : (
             <ModulesWorkspace
               activeModuleSlug={activeSubmenu}
@@ -848,6 +872,7 @@ export function AdminControlCenter({
             />
           )
         )}
+        {active === "students" && <StudentsWorkspace />}
         {active === "staff" && <OfficerManagement initialOfficers={officers} />}
         {active === "overview" && (
           <div className="space-y-8">
@@ -1214,56 +1239,7 @@ export function AdminControlCenter({
           </div>
         )}
         {active === "appointments" && (
-          <div className="rounded-2xl border border-white/10 bg-[#101023] p-5">
-            <h2 className="text-xl font-extrabold text-white">
-              Appointment requests and attendance
-            </h2>
-            <p className="mt-1 text-sm text-gray-400">
-              Review requests, then approve attendance after the Career Officer
-              completes the consultation.
-            </p>
-            <div className="mt-5 space-y-3">
-              {appointments.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-white/10 p-8 text-center text-sm text-gray-500">
-                  No appointment requests yet.
-                </p>
-              ) : (
-                appointments.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-col gap-3 rounded-xl border border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="font-bold text-white">{item.studentName}</p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(item.scheduledStart).toLocaleString()} ·{" "}
-                        {item.staffName || "Unassigned"}
-                      </p>
-                      <span className="mt-2 inline-flex rounded-full bg-white/10 px-2 py-1 text-[10px] font-bold uppercase text-[#FF7F24]">
-                        {item.status}
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        disabled={pending}
-                        onClick={() => approve(item.id, true)}
-                        className={orangeButton}
-                      >
-                        Approve attendance
-                      </button>
-                      <button
-                        disabled={pending}
-                        onClick={() => approve(item.id, false)}
-                        className="rounded-xl border border-white/15 px-3 py-2 text-xs font-bold text-gray-300 hover:border-[#40297B] hover:bg-[#40297B] hover:text-white"
-                      >
-                        No show
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <AppointmentSchedulerWorkspace officers={officers} />
         )}
         {active === "assessments" && <AssessmentWorkspace />}
         {active === "opportunities" && (
@@ -1279,6 +1255,10 @@ export function AdminControlCenter({
           />
         )}
       </section>
+
+      {profileModalOpen && (
+        <ProfileSettingsModal onClose={() => setProfileModalOpen(false)} />
+      )}
     </div>
   );
 }
