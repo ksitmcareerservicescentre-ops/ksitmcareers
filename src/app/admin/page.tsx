@@ -195,7 +195,7 @@ export default async function SuperAdminDashboardPage() {
           officers={officers}
           students={students}
           logs={logs}
-          defaultTab="modules"
+          defaultTab="assessments"
         />
       </main>
     </div>

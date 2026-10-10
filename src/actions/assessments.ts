@@ -19,6 +19,7 @@ import {
   StudentParticipantRecord,
   starterNaceQuestions,
 } from "@/lib/assessments";
+import { fiveSeedAssessments } from "@/lib/assessments-seed-data";
 
 type StoredQuestionOptions = {
   choices?: Array<{ id: string; text: string }>;
@@ -894,3 +895,69 @@ export async function initializeStarterAssessmentAction() {
     questions: starterNaceQuestions,
   });
 }
+
+/**
+ * Super Admin & Staff: Seed or Restore the 5 Standard Job Readiness Assessments (100 Obj Questions)
+ */
+export async function seedFiveSampleAssessmentsAction() {
+  const currentUser = await getCurrentUser();
+  if (!currentUser || (currentUser.role !== "SUPER_ADMIN" && currentUser.role !== "STAFF")) {
+    return { success: false, error: "Unauthorized access." };
+  }
+
+  try {
+    for (const item of fiveSeedAssessments) {
+      const [existing] = await db
+        .select({ id: assessments.id })
+        .from(assessments)
+        .where(eq(assessments.slug, item.slug))
+        .limit(1);
+
+      let assessmentId = existing?.id;
+
+      if (!assessmentId) {
+        const [inserted] = await db
+          .insert(assessments)
+          .values({
+            title: item.title,
+            slug: item.slug,
+            description: item.description,
+            category: item.category,
+            timeLimitMinutes: item.timeLimitMinutes,
+            passingScore: item.passingScore,
+            isActive: item.isActive,
+          })
+          .returning({ id: assessments.id });
+        assessmentId = inserted.id;
+      } else {
+        await db
+          .delete(assessmentQuestions)
+          .where(eq(assessmentQuestions.assessmentId, assessmentId));
+      }
+
+      const qValues = item.questions.map((q) => ({
+        assessmentId,
+        questionText: q.questionText,
+        questionType: q.questionType,
+        options: q.options,
+        displayOrder: q.displayOrder,
+      }));
+
+      if (qValues.length > 0) {
+        await db.insert(assessmentQuestions).values(qValues);
+      }
+    }
+
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/assessments");
+
+    return { success: true };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to seed standard assessments.",
+    };
+  }
+}
+

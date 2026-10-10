@@ -11,7 +11,7 @@ import {
   assignAssessmentToStudentsAction,
   getAssessmentParticipantsAction,
   getStudentAttemptDetailAction,
-  initializeStarterAssessmentAction,
+  seedFiveSampleAssessmentsAction,
 } from "@/actions/assessments";
 import {
   AssessmentSummary,
@@ -75,6 +75,12 @@ export function AssessmentWorkspace() {
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
   // Modals state
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingAssessmentId, setEditingAssessmentId] = useState<string | null>(null);
@@ -122,6 +128,21 @@ export function AssessmentWorkspace() {
     };
   }, []);
 
+  // Filtered Assessments
+  const filteredAssessments = assessmentsList.filter((item) => {
+    const matchesSearch =
+      !searchQuery.trim() ||
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      categoryFilter === "ALL" || item.category === categoryFilter;
+    const matchesStatus =
+      statusFilter === "ALL" ||
+      (statusFilter === "ACTIVE" ? item.isActive : !item.isActive);
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
   // Quick stats
   const totalAssessments = assessmentsList.length;
   const totalAssigned = participants.length;
@@ -130,6 +151,19 @@ export function AssessmentWorkspace() {
   const institutionalPassRate =
     totalCompleted > 0 ? Math.round((passedCount / totalCompleted) * 100) : 0;
 
+  const handleSeedDefaults = () => {
+    if (confirm("Would you like to seed/restore all 5 Standard Job Readiness Assessments (100 verified questions)?")) {
+      startTransition(async () => {
+        const res = await seedFiveSampleAssessmentsAction();
+        if (res.success) {
+          await loadData();
+        } else {
+          setError(res.error || "Failed to seed sample assessments.");
+        }
+      });
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header & Sub-navigation */}
@@ -137,13 +171,13 @@ export function AssessmentWorkspace() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-orange-400">
             <i className="fas fa-clipboard-check text-xs" />
-            <span>Open Assessment Engine</span>
+            <span>Open Assessment Engine · 2026 Edition</span>
           </div>
           <h1 className="font-academic mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
             Job Readiness Assessments
           </h1>
           <p className="mt-1 text-sm text-gray-400">
-            Create objective assessments (up to 300 questions), preview student experience, assign to cohorts, and track participant scores.
+            Manage objective examination templates (up to 300 items), preview student view, assign to cohorts, and track score ledgers.
           </p>
         </div>
 
@@ -154,7 +188,7 @@ export function AssessmentWorkspace() {
               onClick={() => setTab("catalog")}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 tab === "catalog"
-                  ? "bg-orange-500 text-[#090915] shadow-md"
+                  ? "bg-orange-500 text-[#090915] shadow-md shadow-orange-500/20"
                   : "text-gray-400 hover:text-white"
               }`}
             >
@@ -166,7 +200,7 @@ export function AssessmentWorkspace() {
               onClick={() => setTab("participants")}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 tab === "participants"
-                  ? "bg-orange-500 text-[#090915] shadow-md"
+                  ? "bg-orange-500 text-[#090915] shadow-md shadow-orange-500/20"
                   : "text-gray-400 hover:text-white"
               }`}
             >
@@ -174,6 +208,17 @@ export function AssessmentWorkspace() {
               Participants & Scores ({totalAssigned})
             </button>
           </div>
+
+          <button
+            type="button"
+            disabled={pending}
+            onClick={handleSeedDefaults}
+            className={secondaryButton}
+            title="Seed or verify all 5 Standard Job Readiness Assessments"
+          >
+            <i className="fas fa-sync text-orange-400" />
+            <span>Seed 5 Standards</span>
+          </button>
 
           <button
             type="button"
@@ -256,56 +301,139 @@ export function AssessmentWorkspace() {
       {/* TAB 1: ASSESSMENTS CATALOG */}
       {tab === "catalog" && (
         <div className="space-y-6">
+          {/* SEARCH, FILTER & VIEW MODE CONTROL BAR */}
+          <div className="flex flex-col gap-3 rounded-2xl border border-white/[0.08] bg-[#0c0c1e] p-4 sm:flex-row sm:items-center sm:justify-between shadow-lg">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search assessments by title, curriculum category, or keywords..."
+                className="w-full rounded-xl border border-white/10 bg-[#070714] pl-9 pr-9 py-2 text-xs text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs"
+                >
+                  <i className="fas fa-times" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Dropdowns & View Switcher */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Category Filter */}
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="rounded-xl border border-white/10 bg-[#070714] px-3 py-2 text-xs text-gray-300 focus:border-orange-500 focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All Categories</option>
+                <option value="Diagnostic Core">Diagnostic Core</option>
+                <option value="Technical Skills">Technical Skills</option>
+                <option value="Resume & ATS">Resume & ATS</option>
+                <option value="Interview Mastery">Interview Mastery</option>
+                <option value="Workplace Ethics">Workplace Ethics</option>
+                <option value="Capstone Assessment">Capstone Assessment</option>
+              </select>
+
+              {/* Status Filter */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-xl border border-white/10 bg-[#070714] px-3 py-2 text-xs text-gray-300 focus:border-orange-500 focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All Status</option>
+                <option value="ACTIVE">Active Only</option>
+                <option value="DRAFT">Draft Only</option>
+              </select>
+
+              {/* View Mode Toggle: Grid vs List */}
+              <div className="flex rounded-xl border border-white/10 bg-white/5 p-1">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  title="Grid View"
+                  className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                    viewMode === "grid"
+                      ? "bg-orange-500 text-[#090915] shadow-sm"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <i className="fas fa-th-large mr-1" />
+                  <span className="hidden sm:inline">Grid</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  title="List / Table View"
+                  className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                    viewMode === "list"
+                      ? "bg-orange-500 text-[#090915] shadow-sm"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <i className="fas fa-list mr-1" />
+                  <span className="hidden sm:inline">List</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           {loading ? (
-            <div className="flex items-center justify-center p-12 text-sm text-gray-400">
-              <i className="fas fa-spinner fa-spin mr-2" /> Loading assessments catalog…
+            <div className="flex items-center justify-center p-16 text-sm text-gray-400">
+              <i className="fas fa-spinner fa-spin mr-2 text-orange-400" /> Loading assessments catalog…
             </div>
           ) : assessmentsList.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-[#0e0e22]/50 p-12 text-center">
+            <div className="rounded-3xl border border-dashed border-white/10 bg-[#0e0e22]/50 p-12 text-center space-y-4">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-2xl">
                 <i className="fas fa-clipboard-list" />
               </div>
-              <h3 className="font-academic mt-4 text-lg font-bold text-white">
-                No Assessments Created Yet
+              <h3 className="font-academic text-xl font-bold text-white">
+                No Assessments in Catalog
               </h3>
-              <p className="mx-auto mt-2 max-w-md text-xs text-gray-400 leading-relaxed">
-                Start by creating a custom objective assessment (supporting up to 300 questions) or initialize the institutional NACE Career Readiness diagnostic.
+              <p className="mx-auto max-w-md text-xs text-gray-400 leading-relaxed">
+                Click below to instantly initialize all 5 realistic standard job readiness assessments (100 questions total) or create a custom one from scratch.
               </p>
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <button
                   type="button"
                   disabled={pending}
-                  onClick={() =>
-                    startTransition(async () => {
-                      const res = await initializeStarterAssessmentAction();
-                      if (res.success) {
-                        await loadData();
-                      } else {
-                        setError(res.error || "Failed to initialize starter assessment.");
-                      }
-                    })
-                  }
-                  className={secondaryButton}
-                >
-                  <i className="fas fa-magic text-orange-400" />
-                  <span>Initialize 10-Question Benchmark</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingAssessmentId(null);
-                    setEditorOpen(true);
-                  }}
+                  onClick={handleSeedDefaults}
                   className={orangeButton}
                 >
-                  <i className="fas fa-plus" />
-                  <span>Create Custom Assessment</span>
+                  <i className="fas fa-magic" />
+                  <span>Seed 5 Standard Job Assessments</span>
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {assessmentsList.map((item) => (
+          ) : filteredAssessments.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-[#0c0c1e] p-10 text-center space-y-3">
+              <i className="fas fa-search text-gray-500 text-2xl" />
+              <h3 className="text-sm font-bold text-white">No Matching Assessments Found</h3>
+              <p className="text-xs text-gray-400">
+                No assessments matched your query &quot;{searchQuery}&quot; or chosen category filter.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setCategoryFilter("ALL");
+                  setStatusFilter("ALL");
+                }}
+                className={secondaryButton}
+              >
+                Reset All Filters
+              </button>
+            </div>
+          ) : viewMode === "grid" ? (
+            /* GRID VIEW */
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {filteredAssessments.map((item) => (
                 <AssessmentCard
                   key={item.id}
                   assessment={item}
@@ -335,6 +463,151 @@ export function AssessmentWorkspace() {
                   }}
                 />
               ))}
+            </div>
+          ) : (
+            /* LIST VIEW (High-Density Academic Table) */
+            <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c0c1e] shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-white/[0.08] bg-white/[0.02] text-[10px] font-mono uppercase tracking-wider text-gray-400">
+                      <th className="py-3 px-4">Assessment Title & Category</th>
+                      <th className="py-3 px-3 text-center">Duration</th>
+                      <th className="py-3 px-3 text-center">Questions</th>
+                      <th className="py-3 px-3 text-center">Benchmark</th>
+                      <th className="py-3 px-3 text-center">Takers</th>
+                      <th className="py-3 px-3 text-center">Pass Rate</th>
+                      <th className="py-3 px-3 text-center">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {filteredAssessments.map((item) => (
+                      <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-4 px-4 max-w-xs sm:max-w-md">
+                          <div className="flex items-center gap-2">
+                            <span className="font-academic text-sm font-bold text-white hover:text-orange-400 transition-colors cursor-pointer" onClick={() => {
+                              setEditingAssessmentId(item.id);
+                              setEditorOpen(true);
+                            }}>
+                              {item.title}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="rounded-md border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-orange-400">
+                              {item.category}
+                            </span>
+                            <span className="text-[11px] text-gray-400 truncate">
+                              {item.description}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-3 text-center font-mono font-bold text-white">
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-white/5 border border-white/10 px-2 py-1 text-xs">
+                            <i className="fas fa-clock text-orange-400 text-[10px]" />
+                            {item.timeLimitMinutes || 30}m
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-3 text-center font-mono font-bold text-white">
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-white/5 border border-white/10 px-2 py-1 text-xs">
+                            <i className="fas fa-list-ol text-cyan-400 text-[10px]" />
+                            {item.questionCount} Obj
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-3 text-center font-mono font-bold text-emerald-400">
+                          {item.passingScore || 60}%
+                        </td>
+
+                        <td className="py-4 px-3 text-center font-mono">
+                          <span className="text-gray-300">
+                            {item.completedCount} / <strong className="text-white">{item.totalAssignments}</strong>
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-3 text-center font-mono">
+                          {item.passRate !== null && item.passRate > 0 ? (
+                            <span className="font-bold text-emerald-400">{item.passRate}%</span>
+                          ) : (
+                            <span className="text-gray-500">—</span>
+                          )}
+                        </td>
+
+                        <td className="py-4 px-3 text-center">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              item.isActive
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                : "bg-gray-500/10 text-gray-400 border border-white/10"
+                            }`}
+                          >
+                            <span className={`h-1.5 w-1.5 rounded-full ${item.isActive ? "bg-emerald-400" : "bg-gray-400"}`} />
+                            {item.isActive ? "Active" : "Draft"}
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setAssignModalAssessment(item)}
+                              title="Assign to student cohort"
+                              className="rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[11px] font-bold text-orange-400 hover:bg-orange-500 hover:text-black transition-all"
+                            >
+                              Assign
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const detail = await getAssessmentDetailAction(item.id);
+                                if (detail) {
+                                  setPreviewModalAssessment({
+                                    assessment: item,
+                                    questions: detail.questions,
+                                  });
+                                }
+                              }}
+                              title="Preview exam interface"
+                              className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-gray-300 hover:bg-white/10 hover:text-white transition-all"
+                            >
+                              Preview
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingAssessmentId(item.id);
+                                setEditorOpen(true);
+                              }}
+                              title="Edit assessment & questions"
+                              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-gray-400 hover:text-white transition-all"
+                            >
+                              <i className="fas fa-pen" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (confirm("Delete this assessment?")) {
+                                  const res = await deleteAssessmentAction(item.id);
+                                  if (res.success) loadData();
+                                }
+                              }}
+                              title="Delete assessment"
+                              className="rounded-lg border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] text-red-400 hover:bg-red-500/20 transition-all"
+                            >
+                              <i className="fas fa-trash-alt" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

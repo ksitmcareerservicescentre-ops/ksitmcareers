@@ -216,12 +216,14 @@ export function AdminControlCenter({
   logs?: AuditLogRow[];
   defaultTab?: string;
 }) {
-  const [active, setActive] = useState(defaultTab);
+  const [active, setActive] = useState(defaultTab || "assessments");
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
-  const [pinnedMenu, setPinnedMenu] = useState<string | null>("modules");
+  const [pinnedMenu, setPinnedMenu] = useState<string | null>(
+    defaultTab === "modules" ? "modules" : null,
+  );
   const [mobileExpanded, setMobileExpanded] = useState<Record<string, boolean>>(
-    { modules: true },
+    { modules: defaultTab === "modules" },
   );
   const [createSection, setCreateSection] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
