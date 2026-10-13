@@ -17,13 +17,13 @@ async function hashPassword(password) {
 const sql = neon(process.env.DATABASE_URL);
 
 async function main() {
-  console.log("=== Setting up single sample employer: employer1@ksitmcareers.gov.ng ===");
+  console.log("=== Setting up single sample employer (employer1@ksitmcareers.gov.ng) with 1 full-time JOB ===");
 
   const targetEmail = "employer1@ksitmcareers.gov.ng";
   const targetPassword = "12345678";
   const passwordHash = await hashPassword(targetPassword);
 
-  // 1. Delete all existing job recommendations for any previous jobs
+  // 1. Delete all existing job recommendations
   await sql`DELETE FROM job_recommendations`;
   console.log("Cleared old job recommendations.");
 
@@ -84,7 +84,7 @@ async function main() {
       '+234 803 200 4500',
       'State Secretariat Complex, Katsina, Katsina State',
       'https://katsina.gov.ng',
-      'Official state technology agency driving e-governance infrastructure, government cloud networks, and strategic technical internship pipelines for KSITM technology graduates.',
+      'Official state technology agency driving e-governance infrastructure, government cloud networks, and technical career opportunities for KSITM technology graduates.',
       'VERIFIED',
       NOW(),
       ${JSON.stringify(["State Government Agency", "Official MOA Signed", "Public Sector Sponsor", "CAC Verified"])},
@@ -97,8 +97,8 @@ async function main() {
   `;
   console.log("Created partner employer:", employerRecord);
 
-  // 7. Upload 1 internship for this employer in job_postings
-  const [internship] = await sql`
+  // 7. Upload 1 full-time JOB opening for this employer
+  const [job] = await sql`
     INSERT INTO job_postings (
       title,
       slug,
@@ -122,30 +122,32 @@ async function main() {
       updated_at
     )
     VALUES (
-      'Cloud Infrastructure & Digital Governance Internship',
-      'cloud-infrastructure-digital-governance-internship',
+      'Junior Cloud Infrastructure & Digital Systems Engineer',
+      'junior-cloud-infrastructure-digital-systems-engineer',
       ${employerRecord.id},
       ${employerRecord.name},
       null,
       'Computer Software Engineering',
-      'Internship',
-      '3 Months (Renewable)',
-      5,
-      '₦60,000 / month Stipend',
+      'Full-Time (Hybrid)',
+      'Permanent',
+      3,
+      '₦180,000 - ₦240,000 / month',
       'Katsina State ICT Center, Katsina',
-      'Hands-on technical internship program focusing on cloud server administration, public infrastructure monitoring, web service deployment, and state database administration.',
-      'The Katsina State ICT Directorate offers this structured internship opportunity for top-performing KSITM students and recent alumni. Interns will work alongside government cloud engineers and DevOps mentors to manage state web portals, configure virtualized Linux servers, and participate in statewide e-governance automation deliverables.',
+      'Full-time engineering role responsible for state portal infrastructure uptime, Linux cloud servers, network performance optimization, and institutional system integrity.',
+      'The Katsina State ICT Directorate is recruiting high-potential KSITM graduates for the position of Junior Cloud Infrastructure & Digital Systems Engineer. In this full-time role, you will be embedded with the Directorate Core Infrastructure Team, configuring Linux servers, automating deployment pipelines, managing PostgreSQL database failovers, and ensuring 99.9% uptime across all state government digital services.',
       ${JSON.stringify([
-        "Enrolled in or graduate of KSITM Computer Software Engineering, Networking, or ICT program",
-        "Demonstrated competence in Linux terminal operations, IP networking fundamentals, and database basics",
-        "High personal integrity and commitment to official data confidentiality"
+        "National Diploma (ND) or Higher National Diploma (HND) in Computer Software Engineering, Networking, or Electrical Engineering from KSITM",
+        "Demonstrated proficiency in Linux system administration (Ubuntu/CentOS), Bash scripting, and TCP/IP networking",
+        "Hands-on experience with containerization (Docker) and database administration (PostgreSQL or MySQL)",
+        "Proven diagnostic problem-solving abilities and adherence to institutional security guidelines"
       ])},
       ${JSON.stringify([
-        "Assist in maintaining and monitoring public cloud servers and government agency subdomains",
-        "Deploy application updates and execute technical tests under staff supervision",
-        "Document network configurations and participate in weekly technical reviews"
+        "Manage, maintain, and monitor state government cloud servers and DNS configurations",
+        "Execute automated system backups, patch installations, and security vulnerability remediations",
+        "Collaborate with software engineers to deploy application updates and verify API uptime",
+        "Document systems architecture diagrams and operational disaster recovery workflows"
       ])},
-      'Linux, Cloud Infrastructure, Docker, Networking, PostgreSQL, Bash, Cybersecurity',
+      'Linux Administration, Cloud Hosting, Docker, PostgreSQL, Network Security, Bash, DevOps',
       ${targetEmail},
       true,
       NOW(),
@@ -153,15 +155,15 @@ async function main() {
     )
     RETURNING id, title, nature_of_work, vacancies_count;
   `;
-  console.log("Created uploaded internship:", internship);
+  console.log("Created uploaded JOB opening:", job);
 
-  // 8. Optionally link 1 recommended student to this internship if any student exists
+  // 8. Link 1 recommended student to this job opening
   const students = await sql`SELECT id, full_name FROM student_profiles LIMIT 1`;
   const staff = await sql`SELECT user_id, full_name FROM staff_profiles LIMIT 1`;
   if (students.length > 0) {
     const student = students[0];
     const recommenderUserId = staff.length > 0 ? staff[0].user_id : null;
-    const recommenderName = staff.length > 0 ? staff[0].full_name : "Director of Career Services";
+    const recommenderName = staff.length > 0 ? staff[0].full_name : "Malam Ibrahim Kabir";
 
     await sql`
       INSERT INTO job_recommendations (
@@ -180,25 +182,25 @@ async function main() {
         updated_at
       )
       VALUES (
-        ${internship.id},
+        ${job.id},
         ${student.id},
         ${recommenderUserId},
         ${recommenderName},
         'Senior Career Advisory Officer',
-        'Exceptional technical rigor and top-tier score on the Job Readiness Benchmark. Candidate demonstrated outstanding Linux administration competencies and strong work ethic in campus lab simulations.',
+        'Exceptional technical rigor and top-tier score on the Job Readiness Benchmark. Candidate demonstrated outstanding Linux administration competencies, practical infrastructure troubleshooting skills, and exemplary dedication.',
         ${recommenderUserId},
         ${recommenderName},
         'RECOMMENDED',
         'Interview Scheduled',
-        'Reviewing candidate resume; scheduled for technical orientation.',
+        'Candidate shortlisted for technical assessment and formal onboarding interview.',
         NOW(),
         NOW()
       );
     `;
-    console.log(`Created 1 sample recommendation for student ${student.full_name} on the internship.`);
+    console.log(`Created 1 recommendation for student ${student.full_name} on the job opening.`);
   }
 
-  console.log("\n=== Setup completed successfully! ===");
+  console.log("\n=== Job setup completed successfully! ===");
 }
 
 main().catch(console.error);
