@@ -1,4 +1,12 @@
-export function Testimonials() {
+import type { TestimonialRecord } from "@/db/schema";
+
+export function Testimonials({
+  testimonials = [],
+}: {
+  testimonials?: TestimonialRecord[];
+}) {
+  if (!testimonials || testimonials.length === 0) return null;
+
   return (
     <section id="testimonials" className="py-24 bg-[#0A0A1A]/80 relative">
       <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A1A] via-transparent to-[#0A0A1A] pointer-events-none"></div>
@@ -17,78 +25,38 @@ export function Testimonials() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 transition-all duration-500 hover:bg-white/10 hover:border-[#FF7F24]/30 hover:-translate-y-2">
-            <div className="flex text-[#FF7F24] text-xl mb-4">
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-            </div>
-            <blockquote className="text-gray-300 text-lg leading-relaxed mb-6">
-              &ldquo;The AI assistant helped me refine my resume and I landed an
-              internship within weeks. Incredible tool!&rdquo;
-            </blockquote>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF7F24] to-[#40297B] flex items-center justify-center text-white font-bold">
-                AY
-              </div>
+          {testimonials.map((item, idx) => (
+            <div
+              key={item.id}
+              className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 transition-all duration-500 hover:bg-white/10 hover:border-[#FF7F24]/30 hover:-translate-y-2 flex flex-col justify-between"
+            >
               <div>
-                <p className="text-white font-semibold">Amina Yusuf</p>
-                <p className="text-gray-400 text-sm">
-                  Computer Science, Year 3
-                </p>
+                <div className="flex text-[#FF7F24] text-xl mb-4">
+                  {Array.from({ length: item.rating || 5 }).map((_, i) => (
+                    <i key={i} className="fas fa-star" />
+                  ))}
+                </div>
+                <blockquote className="text-gray-300 text-base leading-relaxed mb-6 italic">
+                  &ldquo;{item.quote}&rdquo;
+                </blockquote>
+              </div>
+              <div className="flex items-center gap-4 pt-4 border-t border-white/5">
+                <div
+                  className={`w-12 h-12 rounded-full bg-gradient-to-br ${
+                    idx % 2 === 0
+                      ? "from-[#FF7F24] to-[#40297B]"
+                      : "from-[#40297B] to-[#FF7F24]"
+                  } flex items-center justify-center text-white font-bold text-sm`}
+                >
+                  {item.avatarInitials || item.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm">{item.name}</p>
+                  <p className="text-gray-400 text-xs">{item.role}</p>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 transition-all duration-500 hover:bg-white/10 hover:border-[#40297B]/30 hover:-translate-y-2">
-            <div className="flex text-[#FF7F24] text-xl mb-4">
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-            </div>
-            <blockquote className="text-gray-300 text-lg leading-relaxed mb-6">
-              &ldquo;The virtual internship program gave me real experience with
-              a tech company. I feel confident for the job market.&rdquo;
-            </blockquote>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#40297B] to-[#FF7F24] flex items-center justify-center text-white font-bold">
-                IM
-              </div>
-              <div>
-                <p className="text-white font-semibold">Ibrahim Musa</p>
-                <p className="text-gray-400 text-sm">Business Admin, Year 4</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 transition-all duration-500 hover:bg-white/10 hover:border-[#FF7F24]/30 hover:-translate-y-2">
-            <div className="flex text-[#FF7F24] text-xl mb-4">
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-              <i className="fas fa-star"></i>
-            </div>
-            <blockquote className="text-gray-300 text-lg leading-relaxed mb-6">
-              &ldquo;From resume building to employer connections, this platform
-              has everything. I got my dream job through KSITM Careers.&rdquo;
-            </blockquote>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF7F24] to-[#40297B] flex items-center justify-center text-white font-bold">
-                FB
-              </div>
-              <div>
-                <p className="text-white font-semibold">Fatima Bello</p>
-                <p className="text-gray-400 text-sm">
-                  Mass Comm, Alumna &apos;25
-                </p>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>

@@ -4,54 +4,19 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const galleryItems = [
-  {
-    src: "https://res.cloudinary.com/djkudkxmx/image/upload/v1790510808/12_gejlfg.jpg",
-    alt: "KSITM gallery photo: Learning together",
-    title: "Learning together",
-    caption: "Scenes from the shared learning experience at KSITM.",
-  },
-  {
-    src: "https://res.cloudinary.com/djkudkxmx/image/upload/v1790510807/19_ogvqvj.jpg",
-    alt: "KSITM gallery photo: Community in focus",
-    title: "Community in focus",
-    caption: "A snapshot of connection and activity around the institute.",
-  },
-  {
-    src: "https://res.cloudinary.com/djkudkxmx/image/upload/v1790510808/17_yg0hpl.jpg",
-    alt: "KSITM gallery photo: Another perspective",
-    title: "Another perspective",
-    caption: "Explore another scene from the KSITM gallery.",
-  },
-  {
-    src: "https://res.cloudinary.com/djkudkxmx/image/upload/v1790510808/13_xlkzft.jpg",
-    alt: "KSITM gallery photo: Shared experiences",
-    title: "Shared experiences",
-    caption: "A further glimpse into the KSITM community.",
-  },
-  {
-    src: "https://res.cloudinary.com/djkudkxmx/image/upload/v1790675969/Gemini_Generated_Image_wd6fouwd6fouwd6f_unakt3.jpg",
-    alt: "KSITM gallery photo: Shared experiences",
-    title: "Shared experiences",
-    caption: "A further glimpse into the KSITM community.",
-  },
-  {
-    src: "https://res.cloudinary.com/djkudkxmx/image/upload/v1790675990/Gemini_Generated_Image_9560vq9560vq9560_avlrqc.jpg",
-    alt: "KSITM gallery photo: Shared experiences",
-    title: "Shared experiences",
-    caption: "A further glimpse into the KSITM community.",
-  },
-  {
-    src: "https://res.cloudinary.com/djkudkxmx/image/upload/v1790703234/ChatGPT_Image_Sep_29_2026_06_33_23_PM_diyx8d.png",
-    alt: "KSITM gallery photo: Shared experiences",
-    title: "Shared experiences",
-    caption: "A further glimpse into the KSITM community.",
-  },
-];
+type PublishedGalleryItem = {
+  id?: string;
+  imageUrl: string;
+  imageAlt: string;
+  title: string;
+  caption: string;
+};
 
-type PublishedGalleryItem = { imageUrl: string; imageAlt: string; title: string; caption: string };
-
-function GalleryItemCard({ item }: { item: (typeof galleryItems)[0] }) {
+function GalleryItemCard({
+  item,
+}: {
+  item: { src: string; alt: string; title: string; caption: string };
+}) {
   const [hasError, setHasError] = useState(false);
 
   return (
@@ -87,8 +52,24 @@ function GalleryItemCard({ item }: { item: (typeof galleryItems)[0] }) {
   );
 }
 
-export function Gallery({ items, fullPage = false }: { items?: PublishedGalleryItem[]; fullPage?: boolean }) {
-  const allItems = (items && items.length > 0 ? items.map((item) => ({ src: item.imageUrl, alt: item.imageAlt, title: item.title, caption: item.caption })) : galleryItems).filter((item) => !item.src.includes("8q8pmc8q8pmc8q8p"));
+export function Gallery({
+  items = [],
+  fullPage = false,
+}: {
+  items?: PublishedGalleryItem[];
+  fullPage?: boolean;
+}) {
+  const allItems = (items || [])
+    .map((item) => ({
+      src: item.imageUrl,
+      alt: item.imageAlt || item.title,
+      title: item.title,
+      caption: item.caption,
+    }))
+    .filter((item) => item.src && !item.src.includes("8q8pmc8q8pmc8q8p"));
+
+  if (allItems.length === 0) return null;
+
   const visibleItems = fullPage ? allItems : allItems.slice(0, 9);
   return (
     <section id="gallery" className="py-24 bg-[#101023] scroll-mt-20">

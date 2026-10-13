@@ -189,6 +189,8 @@ export const careerServices = pgTable(
   (table) => [index("career_services_slug_idx").on(table.slug)],
 );
 
+export type CareerServiceRecord = typeof careerServices.$inferSelect;
+
 export const studentServiceEntitlements = pgTable(
   "student_service_entitlements",
   {
@@ -1268,4 +1270,58 @@ export const jobRecommendations = pgTable(
 export type PartnerEmployerRecord = typeof partnerEmployers.$inferSelect;
 export type JobPostingRecord = typeof jobPostings.$inferSelect;
 export type JobRecommendationRecord = typeof jobRecommendations.$inferSelect;
+
+// ============================================================
+// 17. TESTIMONIALS & LAUNCH EVENT MEDIA
+// ============================================================
+
+export const testimonials = pgTable(
+  "testimonials",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    role: text("role").notNull(),
+    quote: text("quote").notNull(),
+    rating: integer("rating").notNull().default(5),
+    avatarInitials: text("avatar_initials").notNull(),
+    isPublished: boolean("is_published").notNull().default(true),
+    displayOrder: integer("display_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("testimonials_published_idx").on(table.isPublished),
+    index("testimonials_display_idx").on(table.displayOrder),
+  ],
+);
+
+export const launchEventVideos = pgTable(
+  "launch_event_videos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    videoUrl: text("video_url").notNull(),
+    description: text("description"),
+    displayOrder: integer("display_order").notNull().default(0),
+    isPublished: boolean("is_published").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("launch_event_videos_published_idx").on(table.isPublished),
+    index("launch_event_videos_display_idx").on(table.displayOrder),
+  ],
+);
+
+export type TestimonialRecord = typeof testimonials.$inferSelect;
+export type LaunchEventVideoRecord = typeof launchEventVideos.$inferSelect;
+
 
