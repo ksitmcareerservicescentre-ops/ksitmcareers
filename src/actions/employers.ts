@@ -542,19 +542,19 @@ export async function seedStandardEmployersAction(): Promise<{
 
     const employers: OnboardEmployerInput[] = [
       {
-        name: "Katsina State ICT Directorate",
-        industry: "Public Sector & Digital Infrastructure",
+        name: "KSITM Careers",
+        industry: "Career Services & Digital Talent Placement",
         partnershipTier: "STRATEGIC",
-        registrationNumber: "KTG-ICT-2024",
+        registrationNumber: "KTG-KSITM-2024",
         officialEmail: "employer1@ksitmcareers.gov.ng",
-        contactPerson: "Engr. Aliyu Sanusi",
-        contactDesignation: "Director of Digital Services & Training",
+        contactPerson: "KSITM Careers",
+        contactDesignation: "KSITM Careers",
         contactEmail: "employer1@ksitmcareers.gov.ng",
         contactPhone: "+234 803 200 4500",
-        address: "State Secretariat Complex, Katsina, Katsina State",
-        websiteUrl: "https://katsina.gov.ng",
+        address: "Katsina State Institute of Technology and Management, Katsina State",
+        websiteUrl: "https://www.ksitmcareers.edu.ng",
         description:
-          "Official state technology agency driving e-governance infrastructure, government cloud networks, and strategic technical internship pipelines for KSITM technology graduates.",
+          "Official Career Services Centre of the Katsina State Institute of Technology and Management driving corporate talent acquisition, internships, and graduate placements.",
         verificationStatus: "VERIFIED",
         trustBadges: [
           "State Government Agency",

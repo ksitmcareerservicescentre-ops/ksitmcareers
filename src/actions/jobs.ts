@@ -408,17 +408,17 @@ export async function seedStandardJobsAction(): Promise<{
     const sampleJobs: CreateJobInput[] = [
       {
         title: "Junior Cloud & Infrastructure Support Engineer",
-        companyName: "Katsina State ICT Directorate / Tech Hub",
+        companyName: "KSITM Careers",
         department: "Computer Software Engineering",
         natureOfWork: "Full-Time (Hybrid)",
         duration: "Permanent",
         vacanciesCount: 3,
         salaryRange: "₦220,000 - ₦280,000 / month",
         location: "Katsina, Nigeria",
-        summary: "Assist in administering state cloud infrastructure, monitoring public service portals, and deploying containerized applications.",
-        description: `Katsina State Directorate of Information and Communication Technology (ICT) in collaboration with Katsina Tech Hub invites applications from motivated KSITM diploma graduates for the position of Junior Cloud & Infrastructure Support Engineer.
+        summary: "Assist in administering cloud infrastructure, monitoring institutional portals, and deploying containerized applications.",
+        description: `KSITM Careers invites applications from motivated KSITM diploma graduates for the position of Junior Cloud & Infrastructure Support Engineer.
 
-The role offers accelerated mentorship in Linux administration, Google Cloud Platform (GCP) workload management, and enterprise server maintenance. You will collaborate directly with seasoned systems architects to maintain high availability for e-government digital public infrastructure.`,
+The role offers accelerated mentorship in Linux administration, cloud workload management, and enterprise server maintenance. You will collaborate directly with systems architects to maintain high availability for digital infrastructure.`,
         responsibilities: [
           "Monitor uptime and latency of state digital services using Grafana and GCP Cloud Monitoring.",
           "Assist in automating routine backup tasks and disaster recovery protocols.",
