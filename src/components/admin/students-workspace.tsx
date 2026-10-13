@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
@@ -126,11 +127,58 @@ export function StudentsWorkspace() {
   };
 
   useEffect(() => {
-    loadStudents();
+    let active = true;
+    void listStudentsAction({
+      search,
+      department,
+      level,
+      status,
+    })
+      .then((rows) => {
+        if (active) {
+          setStudents(rows);
+          setError("");
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load students directory.",
+          );
+          setLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [department, level, status]);
 
   useEffect(() => {
-    loadMasterList();
+    let active = true;
+    void listStudentMasterListAction({
+      search: masterSearch,
+      status: masterStatus,
+      department: masterDept,
+    })
+      .then((res) => {
+        if (active) {
+          setMasterRecords(res.records);
+          setMasterStats(res.stats);
+          setMasterLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        console.error("Failed to load master list:", err);
+        if (active) {
+          setMasterLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [masterStatus, masterDept]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -447,11 +495,11 @@ export function StudentsWorkspace() {
                         {st.avatarUrl ? (
                           <img
                             src={st.avatarUrl}
-                            alt={st.fullName}
-                            className="h-8 w-8 rounded-full object-cover border border-purple-500/30"
+                            alt={`${st.fullName} Passport`}
+                            className="h-9 w-9 rounded-xl object-cover border-2 border-orange-500/40 shadow-sm shrink-0"
                           />
                         ) : (
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20 text-purple-300 font-bold text-xs border border-purple-500/30">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-orange-500/20 text-orange-300 font-bold text-xs border border-orange-500/30 shrink-0">
                             {st.fullName[0]}
                           </div>
                         )}
@@ -625,7 +673,7 @@ export function StudentsWorkspace() {
 
               <select
                 value={masterStatus}
-                onChange={(e) => setMasterStatus(e.target.value as any)}
+                onChange={(e) => setMasterStatus(e.target.value as "ALL" | "REGISTERED" | "PENDING")}
                 className="rounded-xl border border-white/10 bg-[#090918] px-3 py-2 text-xs sm:text-sm text-white focus:border-orange-500 focus:outline-none"
               >
                 <option value="ALL">All Status</option>
@@ -854,6 +902,7 @@ function CreateStudentModal({
   const [level, setLevel] = useState("ND I");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("Ksitm@2026");
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -876,6 +925,7 @@ function CreateStudentModal({
         level,
         phone,
         password,
+        avatarUrl,
       });
       if (!res.success) throw new Error(res.error);
       onCreated();
@@ -1007,6 +1057,34 @@ function CreateStudentModal({
             />
             <p className="text-[11px] text-gray-500 mt-1">Student can change this upon initial login.</p>
           </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-300 flex items-center justify-between">
+              <span>Student Passport Photograph URL</span>
+              <span className="text-[10px] text-gray-500">Official student identity photo link</span>
+            </label>
+            <div className="mt-1 flex items-center gap-3">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Passport preview"
+                  className="h-11 w-11 rounded-xl object-cover border-2 border-orange-500/40 shrink-0"
+                />
+              ) : (
+                <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-white/20 text-gray-500 text-xs bg-white/[0.02]">
+                  <i className="fas fa-camera text-xs" />
+                  <span className="text-[8px] font-mono mt-0.5">Passport</span>
+                </div>
+              )}
+              <input
+                type="url"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="https://... (e.g. passport photo URL)"
+                className={inputStyle}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-white/[0.08] pt-4">
@@ -1045,6 +1123,7 @@ function EditStudentModal({
   const [level, setLevel] = useState(student.level || "ND I");
   const [phone, setPhone] = useState(student.phone || "");
   const [isActive, setIsActive] = useState(student.isActive);
+  const [avatarUrl, setAvatarUrl] = useState(student.avatarUrl || "");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -1066,6 +1145,7 @@ function EditStudentModal({
         level,
         phone,
         isActive,
+        avatarUrl,
       });
       if (!res.success) throw new Error(res.error);
       onUpdated();
@@ -1168,6 +1248,34 @@ function EditStudentModal({
             />
           </div>
 
+          <div>
+            <label className="text-xs font-semibold text-gray-300 flex items-center justify-between">
+              <span>Student Passport Photograph URL</span>
+              <span className="text-[10px] text-gray-500">Official student identity photo link</span>
+            </label>
+            <div className="mt-1 flex items-center gap-3">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Passport preview"
+                  className="h-11 w-11 rounded-xl object-cover border-2 border-orange-500/40 shrink-0"
+                />
+              ) : (
+                <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-white/20 text-gray-500 text-xs bg-white/[0.02]">
+                  <i className="fas fa-camera text-xs" />
+                  <span className="text-[8px] font-mono mt-0.5">Passport</span>
+                </div>
+              )}
+              <input
+                type="url"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="https://... (e.g. passport photo URL)"
+                className={inputStyle}
+              />
+            </div>
+          </div>
+
           <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer pt-2">
             <input
               type="checkbox"
@@ -1198,6 +1306,96 @@ function EditStudentModal({
 }
 
 // ============================================================
+// UNIVERSAL CLICKABLE LINKS & ATTACHMENT RENDERER
+// ============================================================
+function FormattedTextWithLinks({ content }: { content: string }) {
+  if (!content) return null;
+
+  // Check if content matches document file format: [Document: <label>]\n<url>\n?<note>?
+  const docMatch = content.match(
+    /^\[Document:\s*([^\]]+)\]\s*\n\s*(https?:\/\/[^\s]+)(?:\s*\n([\s\S]*))?$/,
+  );
+  if (docMatch) {
+    const [, docName, docUrl, docNote] = docMatch;
+    return (
+      <div className="space-y-2 pt-0.5">
+        {docNote && (
+          <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-line">
+            <InlineLinks text={docNote} />
+          </p>
+        )}
+        <div className="flex items-center gap-2 pt-0.5">
+          <a
+            href={docUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 px-3 py-1.5 text-xs font-semibold text-cyan-300 transition-all hover:scale-[1.01] shadow-sm cursor-pointer"
+            title="Access Verified Document Attachment"
+          >
+            <i className="fas fa-file-alt text-cyan-400" />
+            <span className="font-mono">{docName}</span>
+            <i className="fas fa-external-link-alt text-[10px] opacity-75" />
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Pure single URL
+  const trimmed = content.trim();
+  if (/^https?:\/\/[^\s]+$/.test(trimmed)) {
+    return (
+      <div className="pt-1">
+        <a
+          href={trimmed}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-xl border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 px-3 py-1.5 text-xs font-semibold text-orange-400 transition-all break-all hover:scale-[1.01] shadow-sm cursor-pointer"
+          title="Access External Web Resource"
+        >
+          <i className="fas fa-link text-xs shrink-0" />
+          <span className="break-all">{trimmed}</span>
+          <i className="fas fa-external-link-alt text-[10px] opacity-75 shrink-0" />
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-line">
+      <InlineLinks text={content} />
+    </div>
+  );
+}
+
+function InlineLinks({ text }: { text: string }) {
+  const urlRegex = /(https?:\/\/[^\s)]+)/g;
+  const parts = text.split(urlRegex);
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (/^https?:\/\//.test(part)) {
+          return (
+            <a
+              key={i}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-semibold text-orange-400 hover:text-orange-300 underline underline-offset-2 break-all transition-colors"
+            >
+              <i className="fas fa-external-link-alt text-[9px] opacity-75 shrink-0" />
+              <span>{part}</span>
+            </a>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
+// ============================================================
 // MODAL: STUDENT ACADEMIC DOSSIER & OCCURRENCES LEDGER
 // ============================================================
 function StudentDossierModal({
@@ -1212,10 +1410,19 @@ function StudentDossierModal({
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"overview" | "assessments" | "modules" | "occurrences">("overview");
 
-  // Occurrence logger state
+  // Occurrence logger state with polymorphic switch nav (Text | Link | File)
+  type OccurrenceDetailMode = "text" | "link" | "file";
+  const [detailMode, setDetailMode] = useState<OccurrenceDetailMode>("text");
   const [logTitle, setLogTitle] = useState("");
-  const [logDesc, setLogDesc] = useState("");
-  const [logCategory, setLogCategory] = useState<"ACHIEVEMENT" | "IMPROVEMENT" | "COUNSELING_NOTE" | "OCCURRENCE" | "ASSESSMENT_RESULT">("ACHIEVEMENT");
+  const [textDetail, setTextDetail] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkNote, setLinkNote] = useState("");
+  const [fileUrl, setFileUrl] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [fileNote, setFileNote] = useState("");
+  const [logCategory, setLogCategory] = useState<
+    "ACHIEVEMENT" | "IMPROVEMENT" | "COUNSELING_NOTE" | "OCCURRENCE" | "ASSESSMENT_RESULT" | "OTHER"
+  >("ACHIEVEMENT");
   const [logging, setLogging] = useState(false);
 
   const loadDossier = async () => {
@@ -1232,25 +1439,67 @@ function StudentDossierModal({
   };
 
   useEffect(() => {
-    loadDossier();
+    let active = true;
+    void getStudentDossierAction(studentId)
+      .then((res) => {
+        if (active) {
+          setData(res);
+          setError("");
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setError(err instanceof Error ? err.message : "Failed to load student dossier.");
+          setLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, [studentId]);
 
   const handleAddOccurrence = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!logTitle.trim() || !logDesc.trim()) return;
+    if (!logTitle.trim()) return;
+
+    let computedDesc = "";
+    if (detailMode === "text") {
+      if (!textDetail.trim()) return;
+      computedDesc = textDetail.trim();
+    } else if (detailMode === "link") {
+      if (!linkUrl.trim()) return;
+      computedDesc = linkNote.trim()
+        ? `${linkNote.trim()}\n${linkUrl.trim()}`
+        : linkUrl.trim();
+    } else if (detailMode === "file") {
+      if (!fileUrl.trim()) return;
+      const fileLabel = fileName.trim() || "Attached Document";
+      computedDesc = `[Document: ${fileLabel}]\n${fileUrl.trim()}${
+        fileNote.trim() ? `\n${fileNote.trim()}` : ""
+      }`;
+    }
+
+    if (!computedDesc.trim()) return;
+
     setLogging(true);
     try {
       const res = await logStudentOccurrenceAction(studentId, {
         category: logCategory,
         title: logTitle,
-        description: logDesc,
+        description: computedDesc,
       });
       if (res.success) {
         setLogTitle("");
-        setLogDesc("");
+        setTextDetail("");
+        setLinkUrl("");
+        setLinkNote("");
+        setFileUrl("");
+        setFileName("");
+        setFileNote("");
         await loadDossier();
       }
-    } catch (err: unknown) {
+    } catch {
       alert("Failed to log occurrence.");
     } finally {
       setLogging(false);
@@ -1294,22 +1543,43 @@ function StudentDossierModal({
           <div className="space-y-6">
             {/* Student Profile Quick Strip */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-[#0c0c1e] p-5">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/20 to-orange-500/20 text-2xl font-black text-white border border-purple-500/30">
-                  {data.profile.fullName[0]}
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="relative shrink-0">
+                  {data.profile.avatarUrl ? (
+                    <img
+                      src={data.profile.avatarUrl}
+                      alt={`${data.profile.fullName} Passport`}
+                      className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover border-2 border-orange-500/50 shadow-xl ring-2 ring-purple-500/20"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-purple-900/40 to-black/80 border-2 border-dashed border-orange-500/40 text-orange-300 shadow-xl">
+                      <i className="fas fa-id-badge text-xl mb-0.5 text-orange-400" />
+                      <span className="text-[9px] uppercase font-mono tracking-wider text-gray-300">Passport</span>
+                    </div>
+                  )}
+                  <span className={`absolute -bottom-1 -right-1 rounded-md text-[9px] font-mono font-bold px-1.5 py-0.5 uppercase shadow ${data.profile.isActive ? "bg-emerald-500/90 text-black" : "bg-red-500/90 text-white"}`}>
+                    {data.profile.isActive ? "Active" : "Archived"}
+                  </span>
                 </div>
-                <div>
-                  <h3 className="font-academic text-lg font-bold text-white">
+                <div className="min-w-0 flex-1">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-2.5 py-0.5 text-[10px] font-mono text-purple-300 mb-1">
+                    <i className="fas fa-graduation-cap text-[10px]" />
+                    <span>Student Academic Dossier</span>
+                  </div>
+                  <h3 className="font-academic text-lg sm:text-xl font-bold text-white truncate">
                     {data.profile.fullName}
                   </h3>
                   <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 flex-wrap">
-                    <span className="font-mono text-purple-300 font-bold">{data.profile.regNumber}</span>
+                    <span className="font-mono text-purple-300 font-bold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">{data.profile.regNumber}</span>
                     <span>·</span>
                     <span>{data.profile.department}</span>
                     <span>·</span>
                     <span className="text-orange-400 font-semibold">{data.profile.level}</span>
                   </div>
-                  <div className="text-[11px] text-gray-500 mt-1">{data.profile.email} · {data.profile.phone || "No phone"}</div>
+                  <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-3 flex-wrap">
+                    <span><i className="fas fa-envelope text-[10px] mr-1 text-gray-500" />{data.profile.email}</span>
+                    {data.profile.phone && <span><i className="fas fa-phone text-[10px] mr-1 text-gray-500" />{data.profile.phone}</span>}
+                  </div>
                 </div>
               </div>
 
@@ -1318,10 +1588,10 @@ function StudentDossierModal({
                   href={data.profile.linkedInUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-400 hover:bg-blue-500/20 transition-all self-start sm:self-auto"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-400 hover:bg-blue-500/20 transition-all self-start sm:self-auto shrink-0"
                 >
                   <i className="fab fa-linkedin" />
-                  <span>Student LinkedIn</span>
+                  <span>Student Profile Link</span>
                 </a>
               )}
             </div>
@@ -1467,18 +1737,22 @@ function StudentDossierModal({
             {/* TAB: OCCURRENCES & MILESTONES */}
             {activeTab === "occurrences" && (
               <div className="space-y-6">
-                {/* Form to log new occurrence */}
-                <form onSubmit={handleAddOccurrence} className="rounded-xl border border-purple-500/30 bg-purple-500/[0.04] p-4 space-y-3">
-                  <div className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
-                    <i className="fas fa-pen-alt text-xs" />
-                    <span>Log Official Occurrence, Milestone or Observation</span>
+                {/* Form to log new occurrence with Polymorphic Switcher Nav */}
+                <form onSubmit={handleAddOccurrence} className="rounded-xl border border-purple-500/30 bg-purple-500/[0.04] p-4 sm:p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-2 border-b border-purple-500/20 pb-2.5">
+                    <div className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                      <i className="fas fa-pen-alt text-xs text-orange-400" />
+                      <span>Log Official Occurrence, Milestone or Observation</span>
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-mono">Academic Dossier Ledger</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-2">
+                      <label className="text-[11px] text-gray-300 font-semibold mb-1 block">Occurrence Title *</label>
                       <input
                         type="text"
-                        placeholder="Occurrence Title (e.g. Attended CV Masterclass, Mock Interview Observation)"
+                        placeholder="e.g. Attended CV Masterclass, Mock Interview Observation, Verified Certificate"
                         value={logTitle}
                         onChange={(e) => setLogTitle(e.target.value)}
                         className={inputStyle}
@@ -1486,9 +1760,20 @@ function StudentDossierModal({
                       />
                     </div>
                     <div>
+                      <label className="text-[11px] text-gray-300 font-semibold mb-1 block">Record Category *</label>
                       <select
                         value={logCategory}
-                        onChange={(e) => setLogCategory(e.target.value as any)}
+                        onChange={(e) =>
+                          setLogCategory(
+                            e.target.value as
+                              | "ACHIEVEMENT"
+                              | "IMPROVEMENT"
+                              | "COUNSELING_NOTE"
+                              | "OCCURRENCE"
+                              | "ASSESSMENT_RESULT"
+                              | "OTHER",
+                          )
+                        }
                         className={inputStyle}
                       >
                         <option value="ACHIEVEMENT">Achievement</option>
@@ -1496,31 +1781,150 @@ function StudentDossierModal({
                         <option value="COUNSELING_NOTE">Counseling Note</option>
                         <option value="ASSESSMENT_RESULT">Assessment Result</option>
                         <option value="OCCURRENCE">General Occurrence</option>
+                        <option value="OTHER">Others</option>
                       </select>
                     </div>
                   </div>
 
-                  <textarea
-                    rows={2}
-                    placeholder="Provide details of the academic observation, student performance, or intervention…"
-                    value={logDesc}
-                    onChange={(e) => setLogDesc(e.target.value)}
-                    className={`${inputStyle} resize-none`}
-                    required
-                  />
+                  {/* Polymorphic Switcher Nav */}
+                  <div className="rounded-xl border border-white/10 bg-[#080816] p-3.5 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-white/[0.06] pb-2.5">
+                      <div className="text-[11px] font-mono uppercase tracking-wider text-gray-400 font-semibold flex items-center gap-1.5">
+                        <i className="fas fa-sliders-h text-orange-400 text-xs" />
+                        <span>Detail Input Format:</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1 rounded-xl bg-black/60 p-1 border border-white/10 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => setDetailMode("text")}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            detailMode === "text"
+                              ? "bg-gradient-to-r from-orange-500 to-amber-500 text-black font-bold shadow-sm"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          <i className="fas fa-align-left text-xs" />
+                          <span>Text Note</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDetailMode("link")}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            detailMode === "link"
+                              ? "bg-gradient-to-r from-orange-500 to-amber-500 text-black font-bold shadow-sm"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          <i className="fas fa-link text-xs" />
+                          <span>Web Link</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDetailMode("file")}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            detailMode === "file"
+                              ? "bg-gradient-to-r from-orange-500 to-amber-500 text-black font-bold shadow-sm"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          <i className="fas fa-file-upload text-xs" />
+                          <span>Document / File</span>
+                        </button>
+                      </div>
+                    </div>
 
-                  <div className="flex justify-end">
+                    {detailMode === "text" && (
+                      <div>
+                        <label className="text-[11px] text-gray-400 mb-1 block">Observation / Performance Details:</label>
+                        <textarea
+                          rows={3}
+                          placeholder="Provide details of the academic observation, student performance, or intervention…"
+                          value={textDetail}
+                          onChange={(e) => setTextDetail(e.target.value)}
+                          className={`${inputStyle} resize-none`}
+                          required
+                        />
+                      </div>
+                    )}
+
+                    {detailMode === "link" && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] text-orange-400 font-semibold mb-1 block">Web Link URL *</label>
+                          <input
+                            type="url"
+                            placeholder="https://... (e.g. Credly badge, GitHub repo, Drive folder)"
+                            value={linkUrl}
+                            onChange={(e) => setLinkUrl(e.target.value)}
+                            className={inputStyle}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-gray-400 mb-1 block">Context / Label (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Verified Capstone Project Repository"
+                            value={linkNote}
+                            onChange={(e) => setLinkNote(e.target.value)}
+                            className={inputStyle}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {detailMode === "file" && (
+                      <div className="space-y-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] text-cyan-400 font-semibold mb-1 block">Document / File URL *</label>
+                            <input
+                              type="url"
+                              placeholder="https://... (e.g. cloud document link, file share URL)"
+                              value={fileUrl}
+                              onChange={(e) => setFileUrl(e.target.value)}
+                              className={inputStyle}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-gray-400 mb-1 block">Document Title / File Name</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. KSITM_Certificate_ND2.pdf"
+                              value={fileName}
+                              onChange={(e) => setFileName(e.target.value)}
+                              className={inputStyle}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-gray-400 mb-1 block">Verification Directive / Brief Note (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Verified official certificate issuance from Registrar"
+                            value={fileNote}
+                            onChange={(e) => setFileNote(e.target.value)}
+                            className={inputStyle}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-1">
                     <button
                       type="submit"
                       disabled={logging}
                       className={orangeButton}
                     >
-                      {logging ? "Recording…" : "Log into Student File"}
+                      <i className="fas fa-check-circle text-xs" />
+                      <span>{logging ? "Recording…" : "Log into Student File"}</span>
                     </button>
                   </div>
                 </form>
 
-                {/* List of occurrences */}
+                {/* List of occurrences with Clickable Universal Links */}
                 <div className="space-y-3">
                   {data.occurrences.length === 0 ? (
                     <p className="py-6 text-center text-xs text-gray-500">No occurrences logged yet.</p>
@@ -1528,21 +1932,27 @@ function StudentDossierModal({
                     data.occurrences.map((occ) => (
                       <div
                         key={occ.id}
-                        className="rounded-xl border border-white/[0.06] bg-[#0c0c1e] p-4 space-y-1.5"
+                        className="rounded-xl border border-white/[0.06] bg-[#0c0c1e] p-4 space-y-2 hover:border-white/15 transition-all"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="rounded-md border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold uppercase text-cyan-300">
                               {occ.category.replace("_", " ")}
                             </span>
                             <span className="font-bold text-white text-xs">{occ.title}</span>
                           </div>
-                          <span className="text-[10px] text-gray-500">
+                          <span className="text-[10px] text-gray-500 shrink-0 font-mono">
                             {new Date(occ.occurrenceDate).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-300 leading-relaxed">{occ.description}</p>
-                        <div className="text-[10px] text-gray-500">Logged by: <span className="text-gray-400 font-semibold">{occ.actorName}</span></div>
+                        <FormattedTextWithLinks content={occ.description} />
+                        {occ.actionTaken && (
+                          <div className="rounded-lg bg-black/40 p-2.5 border border-white/[0.04] text-[11px] text-gray-300">
+                            <span className="text-orange-400 font-semibold mr-1">Action Taken:</span>
+                            <FormattedTextWithLinks content={occ.actionTaken} />
+                          </div>
+                        )}
+                        <div className="text-[10px] text-gray-500 pt-0.5">Logged by: <span className="text-gray-400 font-semibold">{occ.actorName}</span></div>
                       </div>
                     ))
                   )}

@@ -19,7 +19,6 @@ import {
   StudentParticipantRecord,
   parseObjectiveQuestionsFromText,
   exportObjectiveQuestionsToText,
-  starterNaceQuestions,
 } from "@/lib/assessments";
 import { AssessmentCard } from "@/components/assessments/assessment-card";
 import { QuestionBuilderItem } from "@/components/assessments/question-builder-item";

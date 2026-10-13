@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq, desc, and, or, sql } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appointments,
@@ -10,7 +10,6 @@ import {
   staffProfiles,
   studentOccurrences,
   studentServiceEntitlements,
-  users,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { recordAuditLog } from "@/lib/audit";

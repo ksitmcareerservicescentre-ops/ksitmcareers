@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import {
@@ -13,6 +14,10 @@ import { ModulesWorkspace } from "@/components/admin/modules-workspace";
 import { OfficerManagement } from "@/components/admin/officer-management";
 import { AssessmentWorkspace } from "@/components/admin/assessment-workspace";
 import { EmployabilityWorkspace } from "@/components/admin/employability-workspace";
+import { ResumeBuilderWorkspace } from "@/components/admin/resume-builder-workspace";
+import { VirtualInternshipWorkspace } from "@/components/admin/virtual-internship-workspace";
+import { JobBoardWorkspace } from "@/components/admin/job-board-workspace";
+import { EmployerEngagementWorkspace } from "@/components/admin/employer-engagement-workspace";
 import { StudentsWorkspace } from "@/components/admin/students-workspace";
 import { AppointmentSchedulerWorkspace } from "@/components/admin/appointment-scheduler-workspace";
 import { ProfileSettingsModal } from "@/components/profile/profile-settings-modal";
@@ -22,7 +27,6 @@ import {
   createLandingContentAction,
   deleteLandingContentAction,
   deleteTrainingVideoAction,
-  markAppointmentAttendanceAction,
   updateLandingContentAction,
   updateTrainingVideoAction,
 } from "@/actions/admin";
@@ -94,6 +98,7 @@ type StudentOverview = {
   level: string | null;
   email: string;
   isActive: boolean;
+  avatarUrl?: string | null;
   createdAt: Date;
 };
 
@@ -229,7 +234,7 @@ export function AdminControlCenter({
     return "readiness";
   });
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
-  const [pinnedMenu, setPinnedMenu] = useState<string | null>("modules");
+  const [pinnedMenu, setPinnedMenu] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<Record<string, boolean>>(
     { modules: defaultTab === "modules" },
   );
@@ -273,8 +278,6 @@ export function AdminControlCenter({
       trigger?.focus();
     };
   }, [mobileNavOpen]);
-
-  const [pending, startTransition] = useTransition();
 
   const MODULE_ICONS: Record<string, string> = {
     readiness: "fa-clipboard-check",
@@ -439,11 +442,6 @@ export function AdminControlCenter({
   useEffect(() => {
     checkSubmenuScroll();
   }, [filteredSubmenus, extendedMenuId]);
-
-  const approve = (id: string, attended: boolean) =>
-    startTransition(async () => {
-      await markAppointmentAttendanceAction(id, attended);
-    });
 
   return (
     <div className="relative">
@@ -865,6 +863,14 @@ export function AdminControlCenter({
             <AssessmentWorkspace />
           ) : activeSubmenu === "training" ? (
             <EmployabilityWorkspace />
+          ) : activeSubmenu === "resume" ? (
+            <ResumeBuilderWorkspace />
+          ) : activeSubmenu === "internship" ? (
+            <VirtualInternshipWorkspace />
+          ) : activeSubmenu === "jobs" ? (
+            <JobBoardWorkspace />
+          ) : activeSubmenu === "employers" ? (
+            <EmployerEngagementWorkspace />
           ) : (
             <ModulesWorkspace
               activeModuleSlug={activeSubmenu}
@@ -1010,7 +1016,20 @@ export function AdminControlCenter({
                             {st.regNumber}
                           </td>
                           <td className="px-6 py-4 font-bold text-white">
-                            {st.fullName}
+                            <div className="flex items-center gap-3">
+                              {st.avatarUrl ? (
+                                <img
+                                  src={st.avatarUrl}
+                                  alt={`${st.fullName} Passport`}
+                                  className="h-8 w-8 rounded-lg object-cover border border-orange-500/40 shrink-0"
+                                />
+                              ) : (
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 text-orange-400 font-bold text-xs border border-orange-500/30">
+                                  {st.fullName[0]}
+                                </div>
+                              )}
+                              <span>{st.fullName}</span>
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-xs">
                             <div>{st.department || "General"}</div>
@@ -1242,35 +1261,13 @@ export function AdminControlCenter({
           <AppointmentSchedulerWorkspace officers={officers} />
         )}
         {active === "assessments" && <AssessmentWorkspace />}
-        {active === "opportunities" && (
-          <Placeholder
-            title="Virtual internships, job board and Career Fair Management"
-            body="Publish opportunities with employer, deadline, location, application method and event details."
-          />
-        )}
-        {active === "employers" && (
-          <Placeholder
-            title="Employer engagement"
-            body="Manage partner organizations, announcements, career events and employer opportunities."
-          />
-        )}
+        {active === "opportunities" && <JobBoardWorkspace />}
+        {active === "employers" && <EmployerEngagementWorkspace />}
       </section>
 
       {profileModalOpen && (
         <ProfileSettingsModal onClose={() => setProfileModalOpen(false)} />
       )}
-    </div>
-  );
-}
-
-function Placeholder({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#101023] p-6">
-      <h2 className="text-xl font-extrabold text-white">{title}</h2>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-400">{body}</p>
-      <span className="mt-5 inline-flex rounded-full border border-[#FF7F24]/30 bg-[#FF7F24]/10 px-3 py-1.5 text-xs font-bold text-[#FF7F24]">
-        Module ready for content
-      </span>
     </div>
   );
 }

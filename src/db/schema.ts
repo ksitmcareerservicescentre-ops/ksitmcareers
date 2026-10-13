@@ -34,7 +34,7 @@ export const users = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     email: text("email").notNull().unique(),
     passwordHash: text("password_hash").notNull(),
-    role: text("role", { enum: ["STUDENT", "STAFF", "SUPER_ADMIN"] })
+    role: text("role", { enum: ["STUDENT", "STAFF", "SUPER_ADMIN", "EMPLOYER"] })
       .notNull()
       .default("STUDENT"),
     isActive: boolean("is_active").notNull().default(true),
@@ -1021,5 +1021,251 @@ export const studentOccurrences = pgTable(
   ],
 );
 
+// ============================================================
+// 13. VIRTUAL INTERNSHIPS & STUDENT WORK SIMULATIONS
+// ============================================================
+
+export const virtualInternships = pgTable(
+  "virtual_internships",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    slug: text("slug").notNull().unique(),
+    organizationName: text("organization_name").notNull(),
+    department: text("department").notNull().default("ALL"),
+    level: text("level").notNull().default("ALL"),
+    duration: text("duration").notNull().default("4 Weeks"),
+    difficulty: text("difficulty").notNull().default("INTERMEDIATE"), // BEGINNER, INTERMEDIATE, ADVANCED
+    bannerUrl: text("banner_url"),
+    summary: text("summary").notNull(),
+    description: text("description").notNull(),
+    learningObjectives: jsonb("learning_objectives").$type<string[]>().notNull().default([]),
+    tasksDeliverables: jsonb("tasks_deliverables").$type<Array<{
+      id: string;
+      title: string;
+      description: string;
+      deliverableType: string;
+    }>>().notNull().default([]),
+    skills: text("skills"),
+    isPublished: boolean("is_published").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("virtual_internships_slug_idx").on(table.slug),
+    index("virtual_internships_dept_idx").on(table.department),
+    index("virtual_internships_pub_idx").on(table.isPublished),
+  ],
+);
+
+export const virtualInternshipEnrollments = pgTable(
+  "virtual_internship_enrollments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    internshipId: uuid("internship_id")
+      .notNull()
+      .references(() => virtualInternships.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => studentProfiles.id, { onDelete: "cascade" }),
+    assignedByUserId: uuid("assigned_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    assignmentNote: text("assignment_note"),
+    status: text("status", {
+      enum: ["ASSIGNED", "IN_PROGRESS", "SUBMITTED", "APPROVED", "REVISION_REQUESTED"],
+    })
+      .notNull()
+      .default("ASSIGNED"),
+    enrolledAt: timestamp("enrolled_at", { withTimezone: true }).defaultNow().notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewedByUserId: uuid("reviewed_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    staffFeedback: text("staff_feedback"),
+    gradeScore: text("grade_score"),
+    outcomeType: text("outcome_type").notNull().default("TEXT"), // TEXT, URL, VIDEO, FILE, HYBRID
+    outcomeTitle: text("outcome_title"),
+    outcomeText: text("outcome_text"),
+    outcomeUrl: text("outcome_url"), // Web, GitHub, Loom, YouTube
+    outcomeFileUrl: text("outcome_file_url"), // Document, PDF, Image
+    outcomeFileName: text("outcome_file_name"),
+    outcomeMetadata: jsonb("outcome_metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    unique("student_internship_unique").on(table.studentId, table.internshipId),
+    index("internship_enrollments_student_idx").on(table.studentId),
+    index("internship_enrollments_internship_idx").on(table.internshipId),
+    index("internship_enrollments_status_idx").on(table.status),
+  ],
+);
+
 export type StudentMasterRecord = typeof studentMasterList.$inferSelect;
 export type NewStudentMasterRecord = typeof studentMasterList.$inferInsert;
+export type VirtualInternshipRecord = typeof virtualInternships.$inferSelect;
+export type VirtualInternshipEnrollmentRecord = typeof virtualInternshipEnrollments.$inferSelect;
+
+// ============================================================
+// 14. PARTNER EMPLOYERS & CORPORATE ORGANIZATIONS
+// ============================================================
+
+export const partnerEmployers = pgTable(
+  "partner_employers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    industry: text("industry").notNull().default("Technology"),
+    partnershipTier: text("partnership_tier", {
+      enum: ["STRATEGIC", "MOA_SIGNED", "RECRUITING_PARTNER", "AFFILIATE"],
+    })
+      .notNull()
+      .default("RECRUITING_PARTNER"),
+    contactPerson: text("contact_person"),
+    contactDesignation: text("contact_designation"),
+    contactEmail: text("contact_email"),
+    contactPhone: text("contact_phone"),
+    officialEmail: text("official_email"),
+    registrationNumber: text("registration_number"),
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    verificationStatus: text("verification_status", {
+      enum: ["PENDING", "VERIFIED", "SUSPENDED"],
+    })
+      .notNull()
+      .default("VERIFIED"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    verifiedByUserId: uuid("verified_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    trustBadges: jsonb("trust_badges").$type<string[]>().notNull().default([]),
+    address: text("address"),
+    websiteUrl: text("website_url"),
+    logoUrl: text("logo_url"),
+    description: text("description"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("partner_employers_slug_idx").on(table.slug),
+    index("partner_employers_industry_idx").on(table.industry),
+    index("partner_employers_tier_idx").on(table.partnershipTier),
+    index("partner_employers_user_idx").on(table.userId),
+    index("partner_employers_verif_idx").on(table.verificationStatus),
+  ],
+);
+
+// ============================================================
+// 15. JOB BOARD POSTINGS & OPPORTUNITIES
+// ============================================================
+
+export const jobPostings = pgTable(
+  "job_postings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    slug: text("slug").notNull().unique(),
+    employerId: uuid("employer_id").references(() => partnerEmployers.id, {
+      onDelete: "set null",
+    }),
+    companyName: text("company_name").notNull(),
+    companyLogoUrl: text("company_logo_url"),
+    department: text("department").notNull().default("ALL"),
+    natureOfWork: text("nature_of_work").notNull().default("Full-Time"),
+    duration: text("duration").notNull().default("Permanent"),
+    vacanciesCount: integer("vacancies_count").notNull().default(1),
+    salaryRange: text("salary_range"),
+    location: text("location").notNull().default("Katsina, Nigeria"),
+    summary: text("summary").notNull(),
+    description: text("description").notNull(),
+    requirements: jsonb("requirements").$type<string[]>().notNull().default([]),
+    responsibilities: jsonb("responsibilities").$type<string[]>().notNull().default([]),
+    skills: text("skills"),
+    applicationDeadline: timestamp("application_deadline", { withTimezone: true }),
+    contactEmail: text("contact_email"),
+    applicationUrl: text("application_url"),
+    isPublished: boolean("is_published").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("job_postings_slug_idx").on(table.slug),
+    index("job_postings_employer_idx").on(table.employerId),
+    index("job_postings_dept_idx").on(table.department),
+    index("job_postings_nature_idx").on(table.natureOfWork),
+    index("job_postings_pub_idx").on(table.isPublished),
+  ],
+);
+
+// ============================================================
+// 16. EMPLOYER ENGAGEMENT, JOB RECOMMENDATIONS & SUPERVISION
+// ============================================================
+
+export const jobRecommendations = pgTable(
+  "job_recommendations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobPostings.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => studentProfiles.id, { onDelete: "cascade" }),
+    recommendedByUserId: uuid("recommended_by_user_id").references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    recommenderName: text("recommender_name").notNull().default("Career Staff"),
+    recommenderDesignation: text("recommender_designation"),
+    recommendationReason: text("recommendation_reason").notNull(),
+    supervisorUserId: uuid("supervisor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    supervisorName: text("supervisor_name"),
+    status: text("status", {
+      enum: ["RECOMMENDED", "APPLIED", "IN_PROGRESS", "COMPLETED", "TERMINATED"],
+    })
+      .notNull()
+      .default("RECOMMENDED"),
+    supervisionNotes: text("supervision_notes"),
+    statusUpdateReason: text("status_update_reason"),
+    startDate: timestamp("start_date", { withTimezone: true }),
+    endDate: timestamp("end_date", { withTimezone: true }),
+    performanceRating: integer("performance_rating"),
+    employerFeedback: text("employer_feedback"),
+    employerStatus: text("employer_status"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique("job_student_recommendation_unique").on(table.jobId, table.studentId),
+    index("job_rec_job_idx").on(table.jobId),
+    index("job_rec_student_idx").on(table.studentId),
+    index("job_rec_recommender_idx").on(table.recommendedByUserId),
+    index("job_rec_supervisor_idx").on(table.supervisorUserId),
+    index("job_rec_status_idx").on(table.status),
+  ],
+);
+
+export type PartnerEmployerRecord = typeof partnerEmployers.$inferSelect;
+export type JobPostingRecord = typeof jobPostings.$inferSelect;
+export type JobRecommendationRecord = typeof jobRecommendations.$inferSelect;
+

@@ -309,7 +309,7 @@ export async function loginAction(
       id: string;
       email: string;
       passwordHash: string;
-      role: "STUDENT" | "STAFF" | "SUPER_ADMIN";
+      role: "STUDENT" | "STAFF" | "SUPER_ADMIN" | "EMPLOYER";
       isActive: boolean;
     } | null = null;
 
@@ -396,6 +396,8 @@ export async function loginAction(
       redirectDestination = "/admin";
     } else if (targetUser.role === "STAFF") {
       redirectDestination = "/staff";
+    } else if (targetUser.role === "EMPLOYER") {
+      redirectDestination = "/employer";
     } else {
       redirectDestination = "/dashboard";
     }

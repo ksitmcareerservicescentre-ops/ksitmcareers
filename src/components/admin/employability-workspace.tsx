@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
@@ -10,7 +11,6 @@ import {
   incrementResourceViewAction,
   type EmployabilityResourceItem,
 } from "@/actions/training";
-import { isValidLinkedInUrl } from "@/lib/validators";
 
 const orangeButton =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-xs sm:text-sm font-bold text-[#090915] transition-all hover:bg-orange-400 hover:shadow-lg hover:shadow-orange-500/25 active:scale-95 disabled:opacity-50 cursor-pointer";
@@ -62,7 +62,25 @@ export function EmployabilityWorkspace() {
   };
 
   useEffect(() => {
-    loadResources();
+    let active = true;
+    listEmployabilityResourcesAction()
+      .then((items) => {
+        if (active) setResources(items);
+      })
+      .catch((err: unknown) => {
+        if (active)
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load employability resources.",
+          );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const filtered = resources.filter((r) => {
@@ -119,7 +137,7 @@ export function EmployabilityWorkspace() {
             <span>Curriculum Module · Employability Skills Training</span>
           </div>
           <h1 className="font-academic mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-            Educational Materials & Resources Hub
+            Employability Skills Training
           </h1>
           <p className="mt-1 text-sm text-gray-400">
             Upload document shares, guides, and career roadmaps with verified author profiles and actionable student directives.
@@ -513,10 +531,10 @@ function ResourceCard({
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 text-[10px] font-bold text-blue-400 transition-colors shrink-0"
-              title="Official LinkedIn Profile"
+              title="Author Web / Profile Link"
             >
-              <i className="fab fa-linkedin" />
-              <span>LinkedIn</span>
+              <i className={resource.uploaderLinkedIn.includes("linkedin.com") ? "fab fa-linkedin" : resource.uploaderLinkedIn.includes("github.com") ? "fab fa-github" : "fas fa-external-link-alt"} />
+              <span>{resource.uploaderLinkedIn.includes("linkedin.com") ? "LinkedIn" : resource.uploaderLinkedIn.includes("github.com") ? "GitHub" : "Link"}</span>
             </a>
           )}
         </div>
@@ -604,9 +622,17 @@ function ResourceEditorModal({
       setError("Please provide actionable instructions on how students should use this material.");
       return;
     }
-    if (uploaderLinkedIn && !isValidLinkedInUrl(uploaderLinkedIn)) {
-      setError("LinkedIn URL must be an official LinkedIn URL (e.g. https://www.linkedin.com/in/yourname). Other links are not allowed.");
-      return;
+    if (uploaderLinkedIn.trim()) {
+      try {
+        const u = new URL(uploaderLinkedIn.trim());
+        if (!["http:", "https:"].includes(u.protocol)) {
+          setError("Profile / web link must start with http:// or https://");
+          return;
+        }
+      } catch {
+        setError("Please enter a valid web link / URL format (e.g. https://...)");
+        return;
+      }
     }
 
     setSaving(true);
@@ -848,14 +874,14 @@ function ResourceEditorModal({
 
               <div>
                 <label className="text-[11px] text-blue-400 font-semibold flex items-center justify-between">
-                  <span>LinkedIn Profile Link:</span>
-                  <span className="text-[10px] text-gray-500 font-normal">Supports ONLY LinkedIn</span>
+                  <span>Author Profile / Web Link:</span>
+                  <span className="text-[10px] text-gray-500 font-normal">Supports all links &amp; URLs</span>
                 </label>
                 <input
                   type="url"
                   value={uploaderLinkedIn}
                   onChange={(e) => setUploaderLinkedIn(e.target.value)}
-                  placeholder="https://www.linkedin.com/in/username"
+                  placeholder="https://... (e.g. LinkedIn, Portfolio, Website, Drive, GitHub)"
                   className={inputStyle}
                 />
               </div>

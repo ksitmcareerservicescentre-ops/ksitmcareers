@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Brand } from "./brand";
 
-type HeaderUser = { name: string; email: string; role: "STUDENT" | "STAFF" | "SUPER_ADMIN" };
+type HeaderUser = { name: string; email: string; role: "STUDENT" | "STAFF" | "SUPER_ADMIN" | "EMPLOYER" };
 
 export function SiteHeader({ user }: { user: HeaderUser | null }) {
   const pathname = usePathname();
@@ -13,7 +13,16 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const displayName = user?.name || "Guest User";
   const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "G";
-  const accountHref = user?.role === "SUPER_ADMIN" ? "/admin" : user?.role === "STAFF" ? "/staff" : user ? "/dashboard" : "/login";
+  const accountHref =
+    user?.role === "SUPER_ADMIN"
+      ? "/admin"
+      : user?.role === "STAFF"
+        ? "/staff"
+        : user?.role === "EMPLOYER"
+          ? "/employer"
+          : user
+            ? "/dashboard"
+            : "/login";
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -33,6 +42,7 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/staff") ||
+    pathname.startsWith("/employer") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/register")
   ) {

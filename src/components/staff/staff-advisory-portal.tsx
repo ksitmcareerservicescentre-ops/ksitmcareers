@@ -1,11 +1,18 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { logoutAction } from "@/actions/auth";
-import { logStudentOccurrenceAction } from "@/actions/students";
+import {
+  getStudentDossierAction,
+  type StudentDossierData,
+} from "@/actions/students";
 import { completeAppointmentWithNotesAction } from "@/actions/appointments";
 import { ProfileSettingsModal } from "@/components/profile/profile-settings-modal";
+import { VirtualInternshipWorkspace } from "@/components/admin/virtual-internship-workspace";
+import { JobBoardWorkspace } from "@/components/admin/job-board-workspace";
+import { EmployerEngagementWorkspace } from "@/components/admin/employer-engagement-workspace";
 
 const orangeButton =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-xs sm:text-sm font-bold text-[#090915] transition-all hover:bg-orange-400 hover:shadow-lg hover:shadow-orange-500/25 active:scale-95 disabled:opacity-50 cursor-pointer";
@@ -43,6 +50,9 @@ export function StaffAdvisoryPortal({
   };
   assignedAppointments: AssignedStudentAppointment[];
 }) {
+  const [portalTab, setPortalTab] = useState<
+    "ADVISORY" | "INTERNSHIPS" | "JOBS" | "EMPLOYERS"
+  >("ADVISORY");
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [dossierStudentId, setDossierStudentId] = useState<string | null>(null);
   const [assessingItem, setAssessingItem] = useState<AssignedStudentAppointment | null>(null);
@@ -217,18 +227,92 @@ export function StaffAdvisoryPortal({
           </div>
         </section>
 
-        {/* Assigned Students Roster */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-extrabold text-white">
-                My Assigned Students & Scheduled Consultations
-              </h2>
-              <p className="text-gray-400 text-xs">
-                You have exclusive advisory access to review files and update dossiers for these assigned students.
-              </p>
+        {/* Staff Portal Navigation Tabs */}
+        <div className="flex border-b border-white/10 gap-3 sm:gap-6 overflow-x-auto pb-1">
+          <button
+            type="button"
+            onClick={() => setPortalTab("ADVISORY")}
+            className={`pb-3 text-xs sm:text-sm font-bold transition-colors border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+              portalTab === "ADVISORY"
+                ? "border-orange-500 text-orange-400"
+                : "border-transparent text-gray-400 hover:text-white"
+            }`}
+          >
+            <i className="fas fa-calendar-check" />
+            <span>Assigned Consultations & Roster</span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-gray-300">
+              {assignedAppointments.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPortalTab("INTERNSHIPS")}
+            className={`pb-3 text-xs sm:text-sm font-bold transition-colors border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+              portalTab === "INTERNSHIPS"
+                ? "border-orange-500 text-orange-400"
+                : "border-transparent text-gray-400 hover:text-white"
+            }`}
+          >
+            <i className="fas fa-laptop-code" />
+            <span>Virtual Internships & Reviews</span>
+            <span className="rounded-full bg-orange-500/15 px-2 py-0.5 text-[10px] font-bold text-orange-400">
+              Workspace
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPortalTab("JOBS")}
+            className={`pb-3 text-xs sm:text-sm font-bold transition-colors border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+              portalTab === "JOBS"
+                ? "border-orange-500 text-orange-400"
+                : "border-transparent text-gray-400 hover:text-white"
+            }`}
+          >
+            <i className="fas fa-briefcase" />
+            <span>Job Board & Vacancies</span>
+            <span className="rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-400">
+              Opportunities
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPortalTab("EMPLOYERS")}
+            className={`pb-3 text-xs sm:text-sm font-bold transition-colors border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+              portalTab === "EMPLOYERS"
+                ? "border-orange-500 text-orange-400"
+                : "border-transparent text-gray-400 hover:text-white"
+            }`}
+          >
+            <i className="fas fa-handshake" />
+            <span>Employer Engagement & Supervision</span>
+            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+              Matrix
+            </span>
+          </button>
+        </div>
+
+        {portalTab === "INTERNSHIPS" ? (
+          <VirtualInternshipWorkspace />
+        ) : portalTab === "JOBS" ? (
+          <JobBoardWorkspace />
+        ) : portalTab === "EMPLOYERS" ? (
+          <EmployerEngagementWorkspace />
+        ) : (
+          /* Assigned Students Roster */
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-extrabold text-white">
+                  My Assigned Students & Scheduled Consultations
+                </h2>
+                <p className="text-gray-400 text-xs">
+                  You have exclusive advisory access to review files and update dossiers for these assigned students.
+                </p>
+              </div>
             </div>
-          </div>
 
           <div className="bg-[#101023] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
             {assignedAppointments.length === 0 ? (
@@ -319,6 +403,7 @@ export function StaffAdvisoryPortal({
             )}
           </div>
         </section>
+      )}
       </main>
 
       {/* Profile & Security Settings Modal */}
@@ -374,7 +459,7 @@ export function StaffAdvisoryPortal({
                 <label className="text-xs font-semibold text-gray-300">Consultation Session Status</label>
                 <select
                   value={statusUpdate}
-                  onChange={(e) => setStatusUpdate(e.target.value as any)}
+                  onChange={(e) => setStatusUpdate(e.target.value as "COMPLETED" | "NO_SHOW" | "CANCELLED")}
                   className={inputStyle}
                 >
                   <option value="COMPLETED">Session Completed & Attended</option>
@@ -435,16 +520,22 @@ function StaffStudentDossierModal({
   studentId: string;
   onClose: () => void;
 }) {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<StudentDossierData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useState(() => {
-    import("@/actions/students").then(({ getStudentDossierAction }) => {
-      getStudentDossierAction(studentId)
-        .then((res) => setData(res))
-        .finally(() => setLoading(false));
-    });
-  });
+  useEffect(() => {
+    let cancelled = false;
+    getStudentDossierAction(studentId)
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [studentId]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/90 p-3 sm:p-6 md:p-8 backdrop-blur-md">
@@ -474,9 +565,26 @@ function StaffStudentDossierModal({
           <div className="text-center text-xs text-gray-500">Could not locate student records.</div>
         ) : (
           <div className="space-y-4 text-xs">
-            <div className="rounded-xl border border-white/[0.08] bg-[#0c0c1e] p-4">
-              <div className="text-white font-bold">{data.profile.fullName} ({data.profile.regNumber})</div>
-              <div className="text-gray-400 mt-1">{data.profile.department} · {data.profile.level}</div>
+            <div className="rounded-xl border border-white/[0.08] bg-[#0c0c1e] p-4 flex items-center gap-3.5">
+              <div className="relative shrink-0">
+                {data.profile.avatarUrl ? (
+                  <img
+                    src={data.profile.avatarUrl}
+                    alt={`${data.profile.fullName} Passport`}
+                    className="h-14 w-14 rounded-xl object-cover border-2 border-orange-500/40 shadow-md"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-purple-900/40 to-black/80 border-2 border-dashed border-orange-500/40 text-orange-300">
+                    <i className="fas fa-id-badge text-lg mb-0.5 text-orange-400" />
+                    <span className="text-[8px] uppercase font-mono">Passport</span>
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-white font-bold text-sm truncate">{data.profile.fullName}</div>
+                <div className="font-mono text-purple-300 text-xs font-semibold mt-0.5">{data.profile.regNumber}</div>
+                <div className="text-gray-400 text-[11px] mt-0.5">{data.profile.department} · {data.profile.level}</div>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
@@ -499,13 +607,30 @@ function StaffStudentDossierModal({
               {data.occurrences.length === 0 ? (
                 <p className="text-gray-500 py-3">No occurrences recorded yet.</p>
               ) : (
-                data.occurrences.map((o: any) => (
-                  <div key={o.id} className="rounded-lg bg-white/[0.02] p-3 border border-white/[0.04] space-y-1">
+                data.occurrences.map((o) => (
+                  <div key={o.id} className="rounded-lg bg-white/[0.02] p-3 border border-white/[0.04] space-y-1.5">
                     <div className="flex justify-between font-bold text-white">
                       <span>{o.title}</span>
                       <span className="text-gray-500 text-[10px]">{new Date(o.occurrenceDate).toLocaleDateString()}</span>
                     </div>
-                    <p className="text-gray-400">{o.description}</p>
+                    <div className="text-gray-400 text-[11px] leading-relaxed break-words">
+                      {o.description.split(/(https?:\/\/[^\s]+)/g).map((part: string, i: number) =>
+                        /^https?:\/\//.test(part) ? (
+                          <a
+                            key={i}
+                            href={part}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 font-semibold text-orange-400 hover:text-orange-300 underline underline-offset-2 break-all"
+                          >
+                            <i className="fas fa-external-link-alt text-[9px] opacity-75" />
+                            <span>{part}</span>
+                          </a>
+                        ) : (
+                          <span key={i}>{part}</span>
+                        ),
+                      )}
+                    </div>
                     <div className="text-[10px] text-gray-500">Logged by: {o.actorName}</div>
                   </div>
                 ))

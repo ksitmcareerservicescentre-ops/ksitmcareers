@@ -9,6 +9,8 @@ import {
   careerServices,
   consultationRequests,
   assessmentAttempts,
+  virtualInternshipEnrollments,
+  jobRecommendations,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -120,12 +122,34 @@ export default async function StudentDashboardPage() {
     console.error("[Dashboard] Error fetching assessment attempts:", err);
   }
 
+  let activeInternshipsCount = 0;
+  try {
+    const studentInternships = await db
+      .select({ id: virtualInternshipEnrollments.id })
+      .from(virtualInternshipEnrollments)
+      .where(eq(virtualInternshipEnrollments.studentId, student.id));
+    activeInternshipsCount = studentInternships.length;
+  } catch (err) {
+    console.error("[Dashboard] Error fetching internship enrollments:", err);
+  }
+
+  let recommendedJobsCount = 0;
+  try {
+    const studentRecs = await db
+      .select({ id: jobRecommendations.id })
+      .from(jobRecommendations)
+      .where(eq(jobRecommendations.studentId, student.id));
+    recommendedJobsCount = studentRecs.length;
+  } catch (err) {
+    console.error("[Dashboard] Error fetching job recommendations:", err);
+  }
+
   return (
     <div className="min-h-screen bg-[#0A0A1A] text-white">
       <DashboardHeader student={student} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             href="/dashboard/modules"
             className="group block rounded-2xl border border-orange-400/30 bg-[#101023] p-5 text-white transition-all hover:border-orange-500 hover:bg-[#14142d]"
@@ -148,7 +172,7 @@ export default async function StudentDashboardPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold group-hover:text-purple-300 transition-colors">
-                  Job Readiness Assessments
+                  Job Readiness
                 </span>
                 {assignedAssessmentsCount > 0 && (
                   <span className="rounded-full bg-purple-500/20 border border-purple-500/30 px-2 py-0.5 text-[10px] font-bold text-purple-300">
@@ -159,7 +183,51 @@ export default async function StudentDashboardPage() {
               <i className="fas fa-arrow-right text-purple-400 group-hover:translate-x-1 transition-transform" />
             </div>
             <span className="mt-2 block text-xs text-gray-400">
-              Take assigned objective exams, test your workplace readiness, and view verified scores.
+              Take objective exams, test workplace readiness, and view verified scores.
+            </span>
+          </Link>
+
+          <Link
+            href="/dashboard/internships"
+            className="group block rounded-2xl border border-cyan-400/30 bg-[#101023] p-5 text-white transition-all hover:border-cyan-500 hover:bg-[#14142d]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold group-hover:text-cyan-300 transition-colors">
+                  Virtual Internships
+                </span>
+                {activeInternshipsCount > 0 && (
+                  <span className="rounded-full bg-cyan-500/20 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
+                    {activeInternshipsCount} Active
+                  </span>
+                )}
+              </div>
+              <i className="fas fa-arrow-right text-cyan-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+            <span className="mt-2 block text-xs text-gray-400">
+              Simulated industry projects, deliverable outcomes, and evaluations.
+            </span>
+          </Link>
+
+          <Link
+            href="/dashboard/jobs"
+            className="group block rounded-2xl border border-emerald-400/30 bg-[#101023] p-5 text-white transition-all hover:border-emerald-500 hover:bg-[#14142d]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold group-hover:text-emerald-300 transition-colors">
+                  Job Board
+                </span>
+                {recommendedJobsCount > 0 && (
+                  <span className="rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                    {recommendedJobsCount} Rec.
+                  </span>
+                )}
+              </div>
+              <i className="fas fa-arrow-right text-emerald-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+            <span className="mt-2 block text-xs text-gray-400">
+              Verified employer openings, advisor recommendations, and supervision.
             </span>
           </Link>
         </div>

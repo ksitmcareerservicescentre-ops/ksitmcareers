@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { HorizontalAutoScrollManager } from "@/components/common/horizontal-auto-scroll-manager";
 import { site } from "@/config/site";
 import { getCurrentUser } from "@/lib/auth/session";
 import "./globals.css";
@@ -52,6 +53,7 @@ export default async function RootLayout({
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
+        <HorizontalAutoScrollManager />
         <SiteHeader user={headerUser} />
         <main id="main-content" tabIndex={-1}>
           {children}

@@ -69,6 +69,7 @@ export default async function SuperAdminDashboardPage() {
       level: studentProfiles.level,
       email: users.email,
       isActive: users.isActive,
+      avatarUrl: studentProfiles.avatarUrl,
       createdAt: studentProfiles.createdAt,
     })
     .from(studentProfiles)

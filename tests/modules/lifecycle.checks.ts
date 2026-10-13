@@ -76,6 +76,126 @@ before(async () => {
     "0001_ambitious_morlun.sql",
   ])
     await database.exec(readFileSync(`src/db/migrations/${file}`, "utf8"));
+  await database.exec(`
+    ALTER TABLE "student_profiles" ADD COLUMN IF NOT EXISTS "master_record_id" uuid;
+    ALTER TABLE "student_profiles" ADD COLUMN IF NOT EXISTS "bio" text;
+    ALTER TABLE "student_profiles" ADD COLUMN IF NOT EXISTS "avatar_url" text;
+    ALTER TABLE "student_profiles" ADD COLUMN IF NOT EXISTS "linkedin_url" text;
+    CREATE TABLE IF NOT EXISTS "virtual_internships" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "title" text NOT NULL,
+      "slug" text NOT NULL UNIQUE,
+      "organization_name" text NOT NULL,
+      "department" text NOT NULL DEFAULT 'ALL',
+      "level" text NOT NULL DEFAULT 'ALL',
+      "duration" text NOT NULL DEFAULT '4 Weeks',
+      "difficulty" text NOT NULL DEFAULT 'INTERMEDIATE',
+      "banner_url" text,
+      "summary" text NOT NULL,
+      "description" text NOT NULL,
+      "learning_objectives" jsonb NOT NULL DEFAULT '[]'::jsonb,
+      "tasks_deliverables" jsonb NOT NULL DEFAULT '[]'::jsonb,
+      "skills" text,
+      "is_published" boolean NOT NULL DEFAULT true,
+      "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+      "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS "virtual_internship_enrollments" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "internship_id" uuid NOT NULL,
+      "student_id" uuid NOT NULL,
+      "assigned_by_user_id" uuid,
+      "assignment_note" text,
+      "status" text NOT NULL DEFAULT 'ASSIGNED',
+      "enrolled_at" timestamp with time zone DEFAULT now() NOT NULL,
+      "started_at" timestamp with time zone,
+      "submitted_at" timestamp with time zone,
+      "reviewed_at" timestamp with time zone,
+      "reviewed_by_user_id" uuid,
+      "staff_feedback" text,
+      "grade_score" text,
+      "outcome_type" text NOT NULL DEFAULT 'TEXT',
+      "outcome_title" text,
+      "outcome_text" text,
+      "outcome_url" text,
+      "outcome_file_url" text,
+      "outcome_file_name" text,
+      "outcome_metadata" jsonb,
+      "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+      "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS "partner_employers" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "name" text NOT NULL,
+      "slug" text NOT NULL UNIQUE,
+      "industry" text NOT NULL DEFAULT 'Technology',
+      "partnership_tier" text NOT NULL DEFAULT 'RECRUITING_PARTNER',
+      "contact_person" text,
+      "contact_designation" text,
+      "contact_email" text,
+      "contact_phone" text,
+      "official_email" text,
+      "registration_number" text,
+      "user_id" uuid,
+      "verification_status" text NOT NULL DEFAULT 'VERIFIED',
+      "verified_at" timestamp with time zone,
+      "verified_by_user_id" uuid,
+      "trust_badges" jsonb NOT NULL DEFAULT '[]'::jsonb,
+      "address" text,
+      "website_url" text,
+      "logo_url" text,
+      "description" text,
+      "is_active" boolean NOT NULL DEFAULT true,
+      "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+      "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS "job_postings" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "title" text NOT NULL,
+      "slug" text NOT NULL UNIQUE,
+      "employer_id" uuid,
+      "company_name" text NOT NULL,
+      "company_logo_url" text,
+      "department" text NOT NULL DEFAULT 'ALL',
+      "nature_of_work" text NOT NULL DEFAULT 'Full-Time',
+      "duration" text NOT NULL DEFAULT 'Permanent',
+      "vacancies_count" integer NOT NULL DEFAULT 1,
+      "salary_range" text,
+      "location" text NOT NULL DEFAULT 'Katsina, Nigeria',
+      "summary" text NOT NULL,
+      "description" text NOT NULL,
+      "requirements" jsonb NOT NULL DEFAULT '[]'::jsonb,
+      "responsibilities" jsonb NOT NULL DEFAULT '[]'::jsonb,
+      "skills" text,
+      "application_deadline" timestamp with time zone,
+      "contact_email" text,
+      "application_url" text,
+      "is_published" boolean NOT NULL DEFAULT true,
+      "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+      "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS "job_recommendations" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      "job_id" uuid NOT NULL,
+      "student_id" uuid NOT NULL,
+      "recommended_by_user_id" uuid,
+      "recommender_name" text NOT NULL DEFAULT 'Career Staff',
+      "recommender_designation" text,
+      "recommendation_reason" text NOT NULL,
+      "supervisor_user_id" uuid,
+      "supervisor_name" text,
+      "status" text NOT NULL DEFAULT 'RECOMMENDED',
+      "supervision_notes" text,
+      "status_update_reason" text,
+      "start_date" timestamp with time zone,
+      "end_date" timestamp with time zone,
+      "performance_rating" integer,
+      "employer_feedback" text,
+      "employer_status" text,
+      "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+      "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+    );
+  `);
 });
 beforeEach(async () => {
   await database.exec("TRUNCATE users, learning_modules CASCADE");

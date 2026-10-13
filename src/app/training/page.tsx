@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -220,9 +221,10 @@ export default async function TrainingPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-[10px] font-bold text-blue-400 hover:bg-blue-500/20 transition-colors shrink-0"
+                          title="Author Web / Profile Link"
                         >
-                          <i className="fab fa-linkedin" />
-                          <span>LinkedIn</span>
+                          <i className={item.uploaderLinkedIn.includes("linkedin.com") ? "fab fa-linkedin" : item.uploaderLinkedIn.includes("github.com") ? "fab fa-github" : "fas fa-external-link-alt"} />
+                          <span>{item.uploaderLinkedIn.includes("linkedin.com") ? "LinkedIn" : item.uploaderLinkedIn.includes("github.com") ? "GitHub" : "Link"}</span>
                         </a>
                       )}
                     </div>

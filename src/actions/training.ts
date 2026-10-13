@@ -1,11 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq, desc, and, or, sql } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   employabilityResources,
-  users,
   staffProfiles,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -32,7 +31,6 @@ export type EmployabilityResourceItem = {
   updatedAt: Date;
 };
 
-import { isValidLinkedInUrl } from "@/lib/validators";
 
 /**
  * List all employability resources.
@@ -109,13 +107,23 @@ export async function createEmployabilityResourceAction(data: {
     return { success: false, error: "Please provide actionable instructions on how students should use this resource." };
   }
 
-  // LinkedIn validation
+  // Uploader link validation (supports all URLs)
   const candidateLinkedIn = data.customUploaderLinkedIn?.trim();
-  if (candidateLinkedIn && !isValidLinkedInUrl(candidateLinkedIn)) {
-    return {
-      success: false,
-      error: "Invalid LinkedIn URL. Only official LinkedIn URLs (e.g. https://linkedin.com/in/username) are accepted.",
-    };
+  if (candidateLinkedIn) {
+    try {
+      const parsed = new URL(candidateLinkedIn);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        return {
+          success: false,
+          error: "Uploader profile / web link must start with http:// or https://",
+        };
+      }
+    } catch {
+      return {
+        success: false,
+        error: "Please enter a valid uploader profile / web link URL.",
+      };
+    }
   }
 
   try {
@@ -215,11 +223,21 @@ export async function updateEmployabilityResourceAction(
   if (!data.resourceAddress?.trim()) {
     return { success: false, error: "Valid resource address is required." };
   }
-  if (data.uploaderLinkedIn && !isValidLinkedInUrl(data.uploaderLinkedIn)) {
-    return {
-      success: false,
-      error: "Only official LinkedIn URLs (https://linkedin.com/in/...) are accepted.",
-    };
+  if (data.uploaderLinkedIn?.trim()) {
+    try {
+      const parsed = new URL(data.uploaderLinkedIn.trim());
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        return {
+          success: false,
+          error: "Uploader profile / web link must start with http:// or https://",
+        };
+      }
+    } catch {
+      return {
+        success: false,
+        error: "Please enter a valid uploader profile / web link URL.",
+      };
+    }
   }
 
   try {
@@ -317,7 +335,7 @@ export async function incrementResourceViewAction(resourceId: string) {
       })
       .where(eq(employabilityResources.id, resourceId));
     return { success: true };
-  } catch (err) {
+  } catch {
     return { success: false };
   }
 }

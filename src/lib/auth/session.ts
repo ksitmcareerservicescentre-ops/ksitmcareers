@@ -2,7 +2,13 @@ import { randomBytes, createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { eq, and, gt } from "drizzle-orm";
 import { db } from "@/db";
-import { sessions, users, studentProfiles, staffProfiles } from "@/db/schema";
+import {
+  sessions,
+  users,
+  studentProfiles,
+  staffProfiles,
+  partnerEmployers,
+} from "@/db/schema";
 
 export const SESSION_COOKIE_NAME = "ksitm_session";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
@@ -10,7 +16,7 @@ export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 export interface AuthenticatedUser {
   id: string;
   email: string;
-  role: "STUDENT" | "STAFF" | "SUPER_ADMIN";
+  role: "STUDENT" | "STAFF" | "SUPER_ADMIN" | "EMPLOYER";
   isActive: boolean;
   studentProfile?: {
     id: string;
@@ -25,6 +31,22 @@ export interface AuthenticatedUser {
     fullName: string;
     staffCode: string | null;
     designation: string | null;
+  } | null;
+  employerProfile?: {
+    id: string;
+    name: string;
+    slug: string;
+    industry: string;
+    partnershipTier: string;
+    verificationStatus: string;
+    contactPerson: string | null;
+    contactDesignation: string | null;
+    contactEmail: string | null;
+    contactPhone: string | null;
+    officialEmail: string | null;
+    registrationNumber: string | null;
+    logoUrl: string | null;
+    websiteUrl: string | null;
   } | null;
 }
 
@@ -118,7 +140,11 @@ export async function validateSessionToken(
   const authenticatedUser: AuthenticatedUser = {
     id: sessionRecord.user.id,
     email: sessionRecord.user.email,
-    role: sessionRecord.user.role as "STUDENT" | "STAFF" | "SUPER_ADMIN",
+    role: sessionRecord.user.role as
+      | "STUDENT"
+      | "STAFF"
+      | "SUPER_ADMIN"
+      | "EMPLOYER",
     isActive: sessionRecord.user.isActive,
   };
 
@@ -153,6 +179,29 @@ export async function validateSessionToken(
       .limit(1);
 
     authenticatedUser.staffProfile = staff || null;
+  } else if (sessionRecord.user.role === "EMPLOYER") {
+    const [employer] = await db
+      .select({
+        id: partnerEmployers.id,
+        name: partnerEmployers.name,
+        slug: partnerEmployers.slug,
+        industry: partnerEmployers.industry,
+        partnershipTier: partnerEmployers.partnershipTier,
+        verificationStatus: partnerEmployers.verificationStatus,
+        contactPerson: partnerEmployers.contactPerson,
+        contactDesignation: partnerEmployers.contactDesignation,
+        contactEmail: partnerEmployers.contactEmail,
+        contactPhone: partnerEmployers.contactPhone,
+        officialEmail: partnerEmployers.officialEmail,
+        registrationNumber: partnerEmployers.registrationNumber,
+        logoUrl: partnerEmployers.logoUrl,
+        websiteUrl: partnerEmployers.websiteUrl,
+      })
+      .from(partnerEmployers)
+      .where(eq(partnerEmployers.userId, sessionRecord.user.id))
+      .limit(1);
+
+    authenticatedUser.employerProfile = employer || null;
   }
 
   return authenticatedUser;

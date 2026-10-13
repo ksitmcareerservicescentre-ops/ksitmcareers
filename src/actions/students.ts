@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq, desc, and, or, sql, ilike } from "drizzle-orm";
+import { eq, desc, and, sql, or, ilike, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   users,
@@ -11,9 +11,7 @@ import {
   assessmentAttempts,
   assessments,
   moduleAssignments,
-  learningModules,
   studentServiceEntitlements,
-  careerServices,
   appointments,
   staffProfiles,
 } from "@/db/schema";
@@ -112,7 +110,33 @@ export async function listStudentsAction(filter?: {
     throw new Error("Unauthorized access to student directory.");
   }
 
-  const allStudents = await db
+  const conditions = [];
+  const search = filter?.search?.trim();
+  const dept = filter?.department;
+  const lvl = filter?.level;
+  const status = filter?.status;
+
+  if (dept && dept !== "ALL") {
+    conditions.push(eq(studentProfiles.department, dept));
+  }
+  if (lvl && lvl !== "ALL") {
+    conditions.push(eq(studentProfiles.level, lvl));
+  }
+  if (status && status !== "ALL") {
+    conditions.push(eq(users.isActive, status === "ACTIVE"));
+  }
+  if (search) {
+    const pattern = `%${search}%`;
+    conditions.push(
+      or(
+        ilike(studentProfiles.fullName, pattern),
+        ilike(studentProfiles.regNumber, pattern),
+        ilike(users.email, pattern),
+      ),
+    );
+  }
+
+  const students = await db
     .select({
       id: studentProfiles.id,
       userId: studentProfiles.userId,
@@ -130,51 +154,50 @@ export async function listStudentsAction(filter?: {
     })
     .from(studentProfiles)
     .innerJoin(users, eq(studentProfiles.userId, users.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(studentProfiles.createdAt));
 
-  const search = filter?.search?.toLowerCase().trim();
-  const dept = filter?.department;
-  const lvl = filter?.level;
-  const status = filter?.status;
-
-  const filtered = allStudents.filter((s) => {
-    if (search) {
-      const match =
-        s.fullName.toLowerCase().includes(search) ||
-        s.regNumber.toLowerCase().includes(search) ||
-        s.email.toLowerCase().includes(search);
-      if (!match) return false;
-    }
-    if (dept && dept !== "ALL" && s.department !== dept) return false;
-    if (lvl && lvl !== "ALL" && s.level !== lvl) return false;
-    if (status && status !== "ALL") {
-      const wantActive = status === "ACTIVE";
-      if (s.isActive !== wantActive) return false;
-    }
-    return true;
-  });
-
-  // Attach metrics
-  const results: StudentTableRow[] = [];
-  for (const st of filtered) {
-    const [att] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(assessmentAttempts)
-      .where(eq(assessmentAttempts.studentId, st.id));
-
-    const [occ] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(studentOccurrences)
-      .where(eq(studentOccurrences.studentId, st.id));
-
-    results.push({
-      ...st,
-      assessmentsCount: att?.count || 0,
-      occurrencesCount: occ?.count || 0,
-    });
+  if (students.length === 0) {
+    return [];
   }
 
-  return results;
+  const studentIds = students.map((s) => s.id);
+
+  // Parallel batch queries for counts — completely eliminates serial N+1 database roundtrips
+  const [attRows, occRows] = await Promise.all([
+    db
+      .select({
+        studentId: assessmentAttempts.studentId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(assessmentAttempts)
+      .where(inArray(assessmentAttempts.studentId, studentIds))
+      .groupBy(assessmentAttempts.studentId),
+    db
+      .select({
+        studentId: studentOccurrences.studentId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(studentOccurrences)
+      .where(inArray(studentOccurrences.studentId, studentIds))
+      .groupBy(studentOccurrences.studentId),
+  ]);
+
+  const attMap = new Map<string, number>();
+  for (const row of attRows) {
+    if (row.studentId) attMap.set(row.studentId, row.count);
+  }
+
+  const occMap = new Map<string, number>();
+  for (const row of occRows) {
+    if (row.studentId) occMap.set(row.studentId, row.count);
+  }
+
+  return students.map((st) => ({
+    ...st,
+    assessmentsCount: attMap.get(st.id) || 0,
+    occurrencesCount: occMap.get(st.id) || 0,
+  }));
 }
 
 /**
@@ -316,6 +339,7 @@ export async function createStudentAction(data: {
   level: string;
   phone?: string;
   password?: string;
+  avatarUrl?: string;
 }) {
   const currentUser = await getCurrentUser();
   if (!currentUser || currentUser.role !== "SUPER_ADMIN") {
@@ -405,6 +429,7 @@ export async function createStudentAction(data: {
         department,
         level,
         phone,
+        avatarUrl: data.avatarUrl?.trim() || null,
       })
       .returning();
 
@@ -545,7 +570,7 @@ export async function deleteStudentAction(studentId: string) {
 export async function logStudentOccurrenceAction(
   studentId: string,
   data: {
-    category: "ACHIEVEMENT" | "IMPROVEMENT" | "COUNSELING_NOTE" | "OCCURRENCE" | "ASSESSMENT_RESULT";
+    category: "ACHIEVEMENT" | "IMPROVEMENT" | "COUNSELING_NOTE" | "OCCURRENCE" | "ASSESSMENT_RESULT" | "OTHER";
     title: string;
     description: string;
     actionTaken?: string;
@@ -786,8 +811,8 @@ export async function createMasterRecordAction(data: {
 
     revalidatePath("/admin");
     return { success: true, recordId: created.id };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Failed to create master record." };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to create master record." };
   }
 }
 
@@ -843,8 +868,8 @@ export async function updateMasterRecordAction(
 
     revalidatePath("/admin");
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Failed to update master record." };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to update master record." };
   }
 }
 
@@ -887,8 +912,8 @@ export async function deleteMasterRecordAction(id: string) {
 
     revalidatePath("/admin");
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Failed to delete master record." };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to delete master record." };
   }
 }
 

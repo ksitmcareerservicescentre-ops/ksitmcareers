@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -62,7 +63,20 @@ export function AppointmentSchedulerWorkspace({
   };
 
   useEffect(() => {
-    loadAppointments();
+    let active = true;
+    listSchedulerAppointmentsAction()
+      .then((res) => {
+        if (active) setData(res);
+      })
+      .catch((err: unknown) => {
+        if (active) setError(err instanceof Error ? err.message : "Failed to load appointments.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const currentList =
@@ -393,7 +407,7 @@ function ScheduleAndAssignModal({
   onScheduled: () => void;
 }) {
   const [selectedStaffId, setSelectedStaffId] = useState(officers[0]?.id || "");
-  const [dateStr, setDateStr] = useState(
+  const [dateStr, setDateStr] = useState(() =>
     new Date(Date.now() + 86400000).toISOString().split("T")[0]
   );
   const [timeStr, setTimeStr] = useState("10:00");
@@ -625,7 +639,9 @@ function CompleteAppointmentModal({
             <label className="text-xs font-semibold text-gray-300">Session Status</label>
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
+              onChange={(e) =>
+                setStatus(e.target.value as "COMPLETED" | "NO_SHOW" | "CANCELLED")
+              }
               className={inputStyle}
             >
               <option value="COMPLETED">Session Completed & Attended</option>
@@ -646,7 +662,7 @@ function CompleteAppointmentModal({
               className={`${inputStyle} resize-none`}
             />
             <p className="text-[11px] text-gray-500 mt-1">
-              This note is automatically written to the student's official Academic Dossier.
+              This note is automatically written to the student&apos;s official Academic Dossier.
             </p>
           </div>
 
@@ -727,9 +743,26 @@ function StudentDossierDetailModal({
           <div className="text-center text-xs text-gray-500">Student file could not be found.</div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-xl border border-white/[0.08] bg-[#0c0c1e] p-4 text-xs">
-              <div className="text-white font-bold">{data.profile.fullName} ({data.profile.regNumber})</div>
-              <div className="text-gray-400 mt-1">{data.profile.department} · {data.profile.level} · {data.profile.email}</div>
+            <div className="rounded-xl border border-white/[0.08] bg-[#0c0c1e] p-4 text-xs flex items-center gap-3.5">
+              <div className="relative shrink-0">
+                {data.profile.avatarUrl ? (
+                  <img
+                    src={data.profile.avatarUrl}
+                    alt={`${data.profile.fullName} Passport`}
+                    className="h-14 w-14 rounded-xl object-cover border-2 border-orange-500/40 shadow-md"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-purple-900/40 to-black/80 border-2 border-dashed border-orange-500/40 text-orange-300">
+                    <i className="fas fa-id-badge text-lg mb-0.5 text-orange-400" />
+                    <span className="text-[8px] uppercase font-mono">Passport</span>
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-white font-bold text-sm truncate">{data.profile.fullName}</div>
+                <div className="font-mono text-purple-300 text-xs font-semibold mt-0.5">{data.profile.regNumber}</div>
+                <div className="text-gray-400 text-[11px] mt-0.5">{data.profile.department} · {data.profile.level} · {data.profile.email}</div>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
@@ -753,12 +786,29 @@ function StudentDossierDetailModal({
                 <p className="text-xs text-gray-500">No occurrences logged.</p>
               ) : (
                 data.occurrences.slice(0, 5).map((o) => (
-                  <div key={o.id} className="rounded-lg bg-white/[0.02] p-3 text-xs space-y-1 border border-white/[0.04]">
+                  <div key={o.id} className="rounded-lg bg-white/[0.02] p-3 text-xs space-y-1.5 border border-white/[0.04]">
                     <div className="flex justify-between font-bold text-white">
                       <span>{o.title}</span>
                       <span className="text-gray-500 text-[10px]">{new Date(o.occurrenceDate).toLocaleDateString()}</span>
                     </div>
-                    <p className="text-gray-400 text-[11px]">{o.description}</p>
+                    <div className="text-gray-400 text-[11px] leading-relaxed break-words">
+                      {o.description.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                        /^https?:\/\//.test(part) ? (
+                          <a
+                            key={i}
+                            href={part}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 font-semibold text-orange-400 hover:text-orange-300 underline underline-offset-2 break-all"
+                          >
+                            <i className="fas fa-external-link-alt text-[9px] opacity-75" />
+                            <span>{part}</span>
+                          </a>
+                        ) : (
+                          <span key={i}>{part}</span>
+                        ),
+                      )}
+                    </div>
                     <div className="text-[10px] text-gray-500">By: {o.actorName}</div>
                   </div>
                 ))
