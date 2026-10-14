@@ -13,7 +13,6 @@ import {
   deletePartnerEmployerAction,
   createOrResetEmployerLoginAction,
   updateEmployerTrustStatusAction,
-  seedStandardEmployersAction,
   type JobRecommendationRow,
   type PartnerEmployerItem,
   type OnboardEmployerInput,
@@ -81,14 +80,8 @@ export function EmployerEngagementWorkspace() {
       listJobPostingsAction({ publishedOnly: true }),
       listStudentsAction(),
     ])
-      .then(async ([recs, emps, jobList, stList]) => {
-        if (emps.length === 0 && !employerSearch && verificationFilter === "ALL" && tierFilter === "ALL") {
-          await seedStandardEmployersAction();
-          const seededEmps = await listPartnerEmployersAction();
-          setEmployers(seededEmps);
-        } else {
-          setEmployers(emps);
-        }
+      .then(([recs, emps, jobList, stList]) => {
+        setEmployers(emps);
         setRecommendations(recs);
         setJobs(jobList);
         setStudents(stList);
@@ -115,21 +108,13 @@ export function EmployerEngagementWorkspace() {
       listJobPostingsAction({ publishedOnly: true }),
       listStudentsAction(),
     ])
-      .then(async ([recs, emps, jobList, stList]) => {
+      .then(([recs, emps, jobList, stList]) => {
         if (!active) return;
-        if (emps.length === 0 && !employerSearch && verificationFilter === "ALL" && tierFilter === "ALL") {
-          await seedStandardEmployersAction();
-          const seededEmps = await listPartnerEmployersAction();
-          if (active) setEmployers(seededEmps);
-        } else {
-          setEmployers(emps);
-        }
-        if (active) {
-          setRecommendations(recs);
-          setJobs(jobList);
-          setStudents(stList);
-          setLoading(false);
-        }
+        setEmployers(emps);
+        setRecommendations(recs);
+        setJobs(jobList);
+        setStudents(stList);
+        setLoading(false);
       })
       .catch((err) => {
         if (active) {

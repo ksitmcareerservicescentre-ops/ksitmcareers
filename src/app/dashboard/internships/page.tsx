@@ -8,7 +8,6 @@ import {
   listVirtualInternshipsAction,
   listInternshipEnrollmentsAction,
   getMyInternshipPortfolioAction,
-  seedStandardVirtualInternshipsAction,
 } from "@/actions/internships";
 import { StudentInternshipsView } from "@/components/internships/student-internships-view";
 
@@ -36,12 +35,8 @@ export default async function StudentInternshipsPage() {
 
   if (!student) redirect("/login");
 
-  // Fetch or seed catalog
-  let catalog = await listVirtualInternshipsAction();
-  if (catalog.length === 0) {
-    await seedStandardVirtualInternshipsAction();
-    catalog = await listVirtualInternshipsAction();
-  }
+  // Fetch catalog directly from database
+  const catalog = await listVirtualInternshipsAction();
 
   // Fetch personal enrollments
   const enrollments = await listInternshipEnrollmentsAction({

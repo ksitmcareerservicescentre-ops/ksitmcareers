@@ -314,31 +314,76 @@ export async function loginAction(
     } | null = null;
 
     const cleanId = identifier.trim();
-    let searchEmail = cleanId.toLowerCase();
-    if (!searchEmail.includes("@")) {
-      searchEmail = `${searchEmail}@ksitmcareers.org.ng`;
-    }
+    const isEmail = cleanId.includes("@");
 
-    // Try finding by email (either entered directly or expanded from username)
-    const [userRecord] = await db
-      .select({
-        id: users.id,
-        email: users.email,
-        passwordHash: users.passwordHash,
-        role: users.role,
-        isActive: users.isActive,
-      })
-      .from(users)
-      .where(
-        sql`lower(${users.email}) = lower(${cleanId}) or lower(${users.email}) = lower(${searchEmail})`,
-      )
-      .limit(1);
+    // Recognized institutional domains for system accounts
+    const SYSTEM_DOMAINS = [
+      "ksitmcareers.gov.ng",
+      "ksitmscareers.gov.ng",
+      "ksitmcareers.edu.ng",
+      "ksitmcareers.org.ng",
+      "ksitm.edu.ng",
+    ];
 
-    if (userRecord) {
-      targetUser = userRecord;
+    if (isEmail) {
+      // User entered an email address
+      const lowerEmail = cleanId.toLowerCase();
+      const [localPart, domainPart] = lowerEmail.split("@");
+
+      // Build prioritized search emails
+      const searchEmails = [lowerEmail];
+
+      // Handle domain alias/typos for system domains (e.g. ksitmscareers.gov.ng -> ksitmcareers.gov.ng)
+      if (domainPart === "ksitmscareers.gov.ng") {
+        searchEmails.push(`${localPart}@ksitmcareers.gov.ng`);
+      }
+
+      // Handle username aliases for employer/employee
+      if (localPart === "employee1") {
+        searchEmails.push(`employer1@${domainPart}`);
+        searchEmails.push("employer1@ksitmcareers.gov.ng");
+      } else if (localPart === "employer1") {
+        searchEmails.push(`employee1@${domainPart}`);
+      }
+
+      // If user typed a system domain, also fallback across other system domains in priority order
+      if (SYSTEM_DOMAINS.includes(domainPart)) {
+        for (const sysDomain of SYSTEM_DOMAINS) {
+          if (sysDomain !== domainPart) {
+            searchEmails.push(`${localPart}@${sysDomain}`);
+          }
+        }
+      }
+
+      const matchedUsers = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          passwordHash: users.passwordHash,
+          role: users.role,
+          isActive: users.isActive,
+        })
+        .from(users)
+        .where(
+          sql`lower(${users.email}) in (${sql.join(
+            searchEmails.map((e) => sql`${e}`),
+            sql`, `,
+          )})`,
+        );
+
+      if (matchedUsers.length > 0) {
+        // Sort by searchEmails priority order
+        targetUser =
+          matchedUsers.sort((a, b) => {
+            const idxA = searchEmails.indexOf(a.email.toLowerCase());
+            const idxB = searchEmails.indexOf(b.email.toLowerCase());
+            return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+          })[0] || null;
+      }
     } else {
-      // Lookup by registration number (for students)
-      const [student] = await db
+      // User entered a non-email identifier (username or registration number)
+      // 1. Check if it is a student registration number
+      const [studentByReg] = await db
         .select({
           userId: studentProfiles.userId,
         })
@@ -346,7 +391,7 @@ export async function loginAction(
         .where(sql`upper(${studentProfiles.regNumber}) = upper(${cleanId})`)
         .limit(1);
 
-      if (student) {
+      if (studentByReg?.userId) {
         const [studentUser] = await db
           .select({
             id: users.id,
@@ -356,10 +401,87 @@ export async function loginAction(
             isActive: users.isActive,
           })
           .from(users)
-          .where(eq(users.id, student.userId))
+          .where(eq(users.id, studentByReg.userId))
           .limit(1);
 
         targetUser = studentUser || null;
+      }
+
+      // Also check student_master_list if not yet resolved
+      if (!targetUser) {
+        const [masterRecord] = await db
+          .select({
+            registeredUserId: studentMasterList.registeredUserId,
+          })
+          .from(studentMasterList)
+          .where(sql`upper(${studentMasterList.regNumber}) = upper(${cleanId})`)
+          .limit(1);
+
+        if (masterRecord?.registeredUserId) {
+          const [masterUser] = await db
+            .select({
+              id: users.id,
+              email: users.email,
+              passwordHash: users.passwordHash,
+              role: users.role,
+              isActive: users.isActive,
+            })
+            .from(users)
+            .where(eq(users.id, masterRecord.registeredUserId))
+            .limit(1);
+
+          targetUser = masterUser || null;
+        }
+      }
+
+      // 2. If not a reg number, check system usernames strictly against system domains.
+      // Non-system domains (e.g. @gmail.com) are strictly excluded and require full email as requested.
+      if (!targetUser) {
+        const lowerUsername = cleanId.toLowerCase();
+        const candidateUsernames = [lowerUsername];
+        if (lowerUsername === "employee1") candidateUsernames.push("employer1");
+        if (lowerUsername === "employer1") candidateUsernames.push("employee1");
+        if (lowerUsername === "admin") candidateUsernames.push("superadmin");
+
+        const candidateEmails: string[] = [];
+        // Primary priority: .gov.ng, then .edu.ng, then .org.ng, then .edu.ng
+        const domainsByPriority = [
+          "ksitmcareers.gov.ng",
+          "ksitmcareers.edu.ng",
+          "ksitmcareers.org.ng",
+          "ksitm.edu.ng",
+        ];
+
+        for (const dom of domainsByPriority) {
+          for (const u of candidateUsernames) {
+            candidateEmails.push(`${u}@${dom}`);
+          }
+        }
+
+        const matchedSystemUsers = await db
+          .select({
+            id: users.id,
+            email: users.email,
+            passwordHash: users.passwordHash,
+            role: users.role,
+            isActive: users.isActive,
+          })
+          .from(users)
+          .where(
+            sql`lower(${users.email}) in (${sql.join(
+              candidateEmails.map((e) => sql`${e}`),
+              sql`, `,
+            )})`,
+          );
+
+        if (matchedSystemUsers.length > 0) {
+          targetUser =
+            matchedSystemUsers.sort((a, b) => {
+              const idxA = candidateEmails.indexOf(a.email.toLowerCase());
+              const idxB = candidateEmails.indexOf(b.email.toLowerCase());
+              return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+            })[0] || null;
+        }
       }
     }
 

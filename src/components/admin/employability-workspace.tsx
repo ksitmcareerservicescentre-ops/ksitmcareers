@@ -7,7 +7,6 @@ import {
   createEmployabilityResourceAction,
   updateEmployabilityResourceAction,
   deleteEmployabilityResourceAction,
-  seedStandardEmployabilityResourcesAction,
   incrementResourceViewAction,
   type EmployabilityResourceItem,
 } from "@/actions/training";
@@ -94,21 +93,6 @@ export function EmployabilityWorkspace() {
     return matchCat && matchSearch;
   });
 
-  const handleSeed = () => {
-    if (confirm("Seed or restore the 4 Standard Academic Career Resources?")) {
-      startTransition(async () => {
-        const res = await seedStandardEmployabilityResourcesAction();
-        if (res.success) {
-          setSuccessMsg("Standard career materials seeded successfully!");
-          await loadResources();
-          setTimeout(() => setSuccessMsg(""), 3000);
-        } else {
-          setError(res.error || "Failed to seed resources.");
-        }
-      });
-    }
-  };
-
   const handleDelete = (id: string, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}"?`)) {
       startTransition(async () => {
@@ -145,17 +129,6 @@ export function EmployabilityWorkspace() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            disabled={pending}
-            onClick={handleSeed}
-            className={secondaryButton}
-            title="Seed standard curriculum resources"
-          >
-            <i className="fas fa-magic text-orange-400" />
-            <span>Seed 4 Standards</span>
-          </button>
-
           <button
             type="button"
             onClick={() => {
@@ -305,12 +278,19 @@ export function EmployabilityWorkspace() {
           </div>
           <h3 className="font-academic text-xl font-bold text-white">No Educational Materials Found</h3>
           <p className="mx-auto max-w-md text-xs text-gray-400 leading-relaxed">
-            Upload document links, curriculum guides, and cheat sheets for KSITM students or seed the 4 standard templates.
+            Upload document links, curriculum guides, and cheat sheets for KSITM students.
           </p>
           <div className="flex justify-center gap-3 pt-2">
-            <button type="button" onClick={handleSeed} className={orangeButton}>
-              <i className="fas fa-magic" />
-              <span>Seed 4 Standard Career Resources</span>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingItem(null);
+                setEditorOpen(true);
+              }}
+              className={orangeButton}
+            >
+              <i className="fas fa-plus" />
+              <span>Upload Resource</span>
             </button>
           </div>
         </div>

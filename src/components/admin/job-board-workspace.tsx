@@ -6,7 +6,6 @@ import {
   createJobPostingAction,
   updateJobPostingAction,
   deleteJobPostingAction,
-  seedStandardJobsAction,
   type JobPostingItem,
   type CreateJobInput,
 } from "@/actions/jobs";
@@ -72,14 +71,8 @@ export function JobBoardWorkspace() {
       department: department !== "ALL" ? department : undefined,
       natureOfWork: natureOfWork !== "ALL" ? natureOfWork : undefined,
     })
-      .then(async (data) => {
-        if (data.length === 0 && !search && department === "ALL" && natureOfWork === "ALL") {
-          await seedStandardJobsAction();
-          const seeded = await listJobPostingsAction();
-          setJobs(seeded);
-        } else {
-          setJobs(data);
-        }
+      .then((data) => {
+        setJobs(data);
         setLoading(false);
       })
       .catch((err) => {
@@ -95,19 +88,10 @@ export function JobBoardWorkspace() {
       department: department !== "ALL" ? department : undefined,
       natureOfWork: natureOfWork !== "ALL" ? natureOfWork : undefined,
     })
-      .then(async (data) => {
+      .then((data) => {
         if (!active) return;
-        if (data.length === 0 && !search && department === "ALL" && natureOfWork === "ALL") {
-          await seedStandardJobsAction();
-          const seeded = await listJobPostingsAction();
-          if (active) {
-            setJobs(seeded);
-            setLoading(false);
-          }
-        } else {
-          setJobs(data);
-          setLoading(false);
-        }
+        setJobs(data);
+        setLoading(false);
       })
       .catch((err) => {
         if (active) {

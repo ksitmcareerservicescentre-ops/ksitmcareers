@@ -27,6 +27,7 @@ export default async function CareerOfficerPortalPage() {
   }
 
   if (user.role !== "STAFF" && user.role !== "SUPER_ADMIN") {
+    if (user.role === "EMPLOYER") redirect("/employer");
     redirect("/dashboard");
   }
 

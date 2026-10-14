@@ -11,7 +11,6 @@ import {
   assignAssessmentToStudentsAction,
   getAssessmentParticipantsAction,
   getStudentAttemptDetailAction,
-  seedFiveSampleAssessmentsAction,
 } from "@/actions/assessments";
 import {
   AssessmentSummary,
@@ -150,19 +149,6 @@ export function AssessmentWorkspace() {
   const institutionalPassRate =
     totalCompleted > 0 ? Math.round((passedCount / totalCompleted) * 100) : 0;
 
-  const handleSeedDefaults = () => {
-    if (confirm("Would you like to seed/restore all 5 Standard Job Readiness Assessments (100 verified questions)?")) {
-      startTransition(async () => {
-        const res = await seedFiveSampleAssessmentsAction();
-        if (res.success) {
-          await loadData();
-        } else {
-          setError(res.error || "Failed to seed sample assessments.");
-        }
-      });
-    }
-  };
-
   return (
     <div className="space-y-8">
       {/* Header & Sub-navigation */}
@@ -207,17 +193,6 @@ export function AssessmentWorkspace() {
               Participants & Scores ({totalAssigned})
             </button>
           </div>
-
-          <button
-            type="button"
-            disabled={pending}
-            onClick={handleSeedDefaults}
-            className={secondaryButton}
-            title="Seed or verify all 5 Standard Job Readiness Assessments"
-          >
-            <i className="fas fa-sync text-orange-400" />
-            <span>Seed 5 Standards</span>
-          </button>
 
           <button
             type="button"
@@ -396,17 +371,19 @@ export function AssessmentWorkspace() {
                 No Assessments in Catalog
               </h3>
               <p className="mx-auto max-w-md text-xs text-gray-400 leading-relaxed">
-                Click below to instantly initialize all 5 realistic standard job readiness assessments (100 questions total) or create a custom one from scratch.
+                No assessments found in the catalog. You can create a new assessment from scratch using the Assessment Builder.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <button
                   type="button"
-                  disabled={pending}
-                  onClick={handleSeedDefaults}
+                  onClick={() => {
+                    setEditingAssessmentId(null);
+                    setEditorOpen(true);
+                  }}
                   className={orangeButton}
                 >
-                  <i className="fas fa-magic" />
-                  <span>Seed 5 Standard Job Assessments</span>
+                  <i className="fas fa-plus" />
+                  <span>Create Assessment</span>
                 </button>
               </div>
             </div>

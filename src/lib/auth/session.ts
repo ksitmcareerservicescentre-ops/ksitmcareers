@@ -8,6 +8,9 @@ import {
   studentProfiles,
   staffProfiles,
   partnerEmployers,
+  studentMasterList,
+  careerServices,
+  studentServiceEntitlements,
 } from "@/db/schema";
 
 export const SESSION_COOKIE_NAME = "ksitm_session";
@@ -149,7 +152,9 @@ export async function validateSessionToken(
   };
 
   if (sessionRecord.user.role === "STUDENT") {
-    const [student] = await db
+    let student: AuthenticatedUser["studentProfile"] = null;
+
+    const [foundStudent] = await db
       .select({
         id: studentProfiles.id,
         regNumber: studentProfiles.regNumber,
@@ -162,12 +167,23 @@ export async function validateSessionToken(
       .where(eq(studentProfiles.userId, sessionRecord.user.id))
       .limit(1);
 
+    if (foundStudent) {
+      student = foundStudent;
+    } else {
+      student = await ensureStudentProfileForUser(
+        sessionRecord.user.id,
+        sessionRecord.user.email,
+      );
+    }
+
     authenticatedUser.studentProfile = student || null;
   } else if (
     sessionRecord.user.role === "STAFF" ||
     sessionRecord.user.role === "SUPER_ADMIN"
   ) {
-    const [staff] = await db
+    let staff: AuthenticatedUser["staffProfile"] = null;
+
+    const [foundStaff] = await db
       .select({
         id: staffProfiles.id,
         fullName: staffProfiles.fullName,
@@ -178,9 +194,20 @@ export async function validateSessionToken(
       .where(eq(staffProfiles.userId, sessionRecord.user.id))
       .limit(1);
 
+    if (foundStaff) {
+      staff = foundStaff;
+    } else if (sessionRecord.user.role === "STAFF") {
+      staff = await ensureStaffProfileForUser(
+        sessionRecord.user.id,
+        sessionRecord.user.email,
+      );
+    }
+
     authenticatedUser.staffProfile = staff || null;
   } else if (sessionRecord.user.role === "EMPLOYER") {
-    const [employer] = await db
+    let employer: AuthenticatedUser["employerProfile"] = null;
+
+    const [foundEmployer] = await db
       .select({
         id: partnerEmployers.id,
         name: partnerEmployers.name,
@@ -201,10 +228,296 @@ export async function validateSessionToken(
       .where(eq(partnerEmployers.userId, sessionRecord.user.id))
       .limit(1);
 
+    if (foundEmployer) {
+      employer = foundEmployer;
+    } else {
+      employer = await ensureEmployerProfileForUser(
+        sessionRecord.user.id,
+        sessionRecord.user.email,
+      );
+    }
+
     authenticatedUser.employerProfile = employer || null;
   }
 
   return authenticatedUser;
+}
+
+/**
+ * Ensures a student profile exists for a user with role STUDENT.
+ */
+export async function ensureStudentProfileForUser(
+  userId: string,
+  email: string,
+) {
+  try {
+    const [existing] = await db
+      .select({
+        id: studentProfiles.id,
+        regNumber: studentProfiles.regNumber,
+        fullName: studentProfiles.fullName,
+        department: studentProfiles.department,
+        level: studentProfiles.level,
+        phone: studentProfiles.phone,
+      })
+      .from(studentProfiles)
+      .where(eq(studentProfiles.userId, userId))
+      .limit(1);
+
+    if (existing) return existing;
+
+    const [master] = await db
+      .select()
+      .from(studentMasterList)
+      .where(eq(studentMasterList.registeredUserId, userId))
+      .limit(1);
+
+    let regNumber = master?.regNumber;
+    let fullName =
+      master?.fullName || (master ? `${master.firstName} ${master.lastName}` : null);
+    const department = master?.department || "Computer Software Engineering";
+    const level = master?.level || "National Diploma I (ND 1)";
+    const phone = master?.phone || null;
+    const masterRecordId = master?.id || null;
+
+    if (!regNumber || !fullName) {
+      const prefix = email.split("@")[0];
+      const cleanName =
+        prefix
+          .replace(/[._0-9]+/g, " ")
+          .trim()
+          .replace(/\b\w/g, (l) => l.toUpperCase()) || "Student Scholar";
+      regNumber = `KSITM/ND/STE/24/${userId.slice(0, 4).toUpperCase()}`;
+      fullName = cleanName;
+    }
+
+    const [inserted] = await db
+      .insert(studentProfiles)
+      .values({
+        userId,
+        masterRecordId,
+        regNumber,
+        fullName,
+        department,
+        level,
+        phone,
+      })
+      .onConflictDoNothing()
+      .returning({
+        id: studentProfiles.id,
+        regNumber: studentProfiles.regNumber,
+        fullName: studentProfiles.fullName,
+        department: studentProfiles.department,
+        level: studentProfiles.level,
+        phone: studentProfiles.phone,
+      });
+
+    const finalProfile =
+      inserted ||
+      (
+        await db
+          .select({
+            id: studentProfiles.id,
+            regNumber: studentProfiles.regNumber,
+            fullName: studentProfiles.fullName,
+            department: studentProfiles.department,
+            level: studentProfiles.level,
+            phone: studentProfiles.phone,
+          })
+          .from(studentProfiles)
+          .where(eq(studentProfiles.userId, userId))
+          .limit(1)
+      )[0];
+
+    if (finalProfile) {
+      try {
+        const allServices = await db
+          .select({ id: careerServices.id, slug: careerServices.slug })
+          .from(careerServices);
+
+        for (const svc of allServices) {
+          const isImmediatelyActive = svc.slug !== "mentorship";
+
+          await db
+            .insert(studentServiceEntitlements)
+            .values({
+              studentId: finalProfile.id,
+              serviceId: svc.id,
+              status: isImmediatelyActive ? "ACTIVE" : "LOCKED",
+              activatedAt: isImmediatelyActive ? new Date() : null,
+            })
+            .onConflictDoNothing();
+        }
+      } catch (e) {
+        console.error("[Session] Entitlements creation error:", e);
+      }
+    }
+
+    return finalProfile || null;
+  } catch (err) {
+    console.error("[Session] Error in ensureStudentProfileForUser:", err);
+    return null;
+  }
+}
+
+/**
+ * Ensures a staff profile exists for a user with role STAFF.
+ */
+export async function ensureStaffProfileForUser(
+  userId: string,
+  email: string,
+) {
+  try {
+    const [existing] = await db
+      .select({
+        id: staffProfiles.id,
+        fullName: staffProfiles.fullName,
+        staffCode: staffProfiles.staffCode,
+        designation: staffProfiles.designation,
+      })
+      .from(staffProfiles)
+      .where(eq(staffProfiles.userId, userId))
+      .limit(1);
+
+    if (existing) return existing;
+
+    const prefix = email.split("@")[0];
+    const cleanName =
+      prefix
+        .replace(/[._0-9]+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (l) => l.toUpperCase()) || "Career Officer";
+    const staffCode = `KSITM/STF/${userId.slice(0, 4).toUpperCase()}`;
+
+    const [inserted] = await db
+      .insert(staffProfiles)
+      .values({
+        userId,
+        staffCode,
+        fullName: cleanName,
+        designation: "Career Advisory & Placement Officer",
+      })
+      .onConflictDoNothing()
+      .returning({
+        id: staffProfiles.id,
+        fullName: staffProfiles.fullName,
+        staffCode: staffProfiles.staffCode,
+        designation: staffProfiles.designation,
+      });
+
+    return (
+      inserted ||
+      (
+        await db
+          .select({
+            id: staffProfiles.id,
+            fullName: staffProfiles.fullName,
+            staffCode: staffProfiles.staffCode,
+            designation: staffProfiles.designation,
+          })
+          .from(staffProfiles)
+          .where(eq(staffProfiles.userId, userId))
+          .limit(1)
+      )[0] ||
+      null
+    );
+  } catch (err) {
+    console.error("[Session] Error in ensureStaffProfileForUser:", err);
+    return null;
+  }
+}
+
+/**
+ * Ensures an employer profile exists for a user with role EMPLOYER.
+ */
+export async function ensureEmployerProfileForUser(
+  userId: string,
+  email: string,
+) {
+  try {
+    const [existing] = await db
+      .select({
+        id: partnerEmployers.id,
+        name: partnerEmployers.name,
+        slug: partnerEmployers.slug,
+        industry: partnerEmployers.industry,
+        partnershipTier: partnerEmployers.partnershipTier,
+        verificationStatus: partnerEmployers.verificationStatus,
+        contactPerson: partnerEmployers.contactPerson,
+        contactDesignation: partnerEmployers.contactDesignation,
+        contactEmail: partnerEmployers.contactEmail,
+        contactPhone: partnerEmployers.contactPhone,
+        officialEmail: partnerEmployers.officialEmail,
+        registrationNumber: partnerEmployers.registrationNumber,
+        logoUrl: partnerEmployers.logoUrl,
+        websiteUrl: partnerEmployers.websiteUrl,
+      })
+      .from(partnerEmployers)
+      .where(eq(partnerEmployers.userId, userId))
+      .limit(1);
+
+    if (existing) return existing;
+
+    const slug = `employer-${userId.slice(0, 8)}`;
+    const [inserted] = await db
+      .insert(partnerEmployers)
+      .values({
+        userId,
+        name: "KSITM Careers",
+        slug,
+        industry: "Technology & Education",
+        partnershipTier: "STRATEGIC",
+        verificationStatus: "VERIFIED",
+        officialEmail: email,
+      })
+      .onConflictDoNothing()
+      .returning({
+        id: partnerEmployers.id,
+        name: partnerEmployers.name,
+        slug: partnerEmployers.slug,
+        industry: partnerEmployers.industry,
+        partnershipTier: partnerEmployers.partnershipTier,
+        verificationStatus: partnerEmployers.verificationStatus,
+        contactPerson: partnerEmployers.contactPerson,
+        contactDesignation: partnerEmployers.contactDesignation,
+        contactEmail: partnerEmployers.contactEmail,
+        contactPhone: partnerEmployers.contactPhone,
+        officialEmail: partnerEmployers.officialEmail,
+        registrationNumber: partnerEmployers.registrationNumber,
+        logoUrl: partnerEmployers.logoUrl,
+        websiteUrl: partnerEmployers.websiteUrl,
+      });
+
+    return (
+      inserted ||
+      (
+        await db
+          .select({
+            id: partnerEmployers.id,
+            name: partnerEmployers.name,
+            slug: partnerEmployers.slug,
+            industry: partnerEmployers.industry,
+            partnershipTier: partnerEmployers.partnershipTier,
+            verificationStatus: partnerEmployers.verificationStatus,
+            contactPerson: partnerEmployers.contactPerson,
+            contactDesignation: partnerEmployers.contactDesignation,
+            contactEmail: partnerEmployers.contactEmail,
+            contactPhone: partnerEmployers.contactPhone,
+            officialEmail: partnerEmployers.officialEmail,
+            registrationNumber: partnerEmployers.registrationNumber,
+            logoUrl: partnerEmployers.logoUrl,
+            websiteUrl: partnerEmployers.websiteUrl,
+          })
+          .from(partnerEmployers)
+          .where(eq(partnerEmployers.userId, userId))
+          .limit(1)
+      )[0] ||
+      null
+    );
+  } catch (err) {
+    console.error("[Session] Error in ensureEmployerProfileForUser:", err);
+    return null;
+  }
 }
 
 /**

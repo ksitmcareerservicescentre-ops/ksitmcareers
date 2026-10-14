@@ -38,116 +38,174 @@ export default async function SuperAdminDashboardPage() {
 
   if (user.role !== "SUPER_ADMIN") {
     if (user.role === "STAFF") redirect("/staff");
+    if (user.role === "EMPLOYER") redirect("/employer");
     redirect("/dashboard");
   }
 
-  // 1. Fetch all career officers
-  const officers = await db
-    .select({
-      id: staffProfiles.id,
-      userId: staffProfiles.userId,
-      fullName: staffProfiles.fullName,
-      staffCode: staffProfiles.staffCode,
-      designation: staffProfiles.designation,
-      canManageAppointments: staffProfiles.canManageAppointments,
-      canManageServices: staffProfiles.canManageServices,
-      createdAt: staffProfiles.createdAt,
-      email: users.email,
-      isActive: users.isActive,
-    })
-    .from(staffProfiles)
-    .innerJoin(users, eq(staffProfiles.userId, users.id))
-    .orderBy(desc(staffProfiles.createdAt));
+  // 1. Fetch data safely from Neon DB with fallback
+  let officers: Array<{
+    id: string;
+    userId: string;
+    fullName: string;
+    staffCode: string | null;
+    designation: string | null;
+    canManageAppointments: boolean;
+    canManageServices: boolean;
+    createdAt: Date;
+    email: string;
+    isActive: boolean;
+  }> = [];
 
-  // 2. Fetch students overview
-  const students = await db
-    .select({
-      id: studentProfiles.id,
-      fullName: studentProfiles.fullName,
-      regNumber: studentProfiles.regNumber,
-      department: studentProfiles.department,
-      level: studentProfiles.level,
-      email: users.email,
-      isActive: users.isActive,
-      avatarUrl: studentProfiles.avatarUrl,
-      createdAt: studentProfiles.createdAt,
-    })
-    .from(studentProfiles)
-    .innerJoin(users, eq(studentProfiles.userId, users.id))
-    .orderBy(desc(studentProfiles.createdAt))
-    .limit(10);
+  let students: Array<{
+    id: string;
+    fullName: string;
+    regNumber: string;
+    department: string | null;
+    level: string | null;
+    email: string;
+    isActive: boolean;
+    avatarUrl: string | null;
+    createdAt: Date;
+  }> = [];
 
-  // 3. Fetch module-related audit logs (strictly module content, never USER_LOGIN)
-  const logs = await db
-    .select({
-      id: auditLogs.id,
-      action: auditLogs.action,
-      entityType: auditLogs.entityType,
-      createdAt: auditLogs.createdAt,
-    })
-    .from(auditLogs)
-    .where(
-      and(
-        ne(auditLogs.action, "USER_LOGIN"),
-        or(
-          like(auditLogs.action, "MODULE_%"),
-          inArray(auditLogs.entityType, [
-            "learning_modules",
-            "module_assignments",
-          ]),
+  let logs: Array<{
+    id: string;
+    action: string;
+    entityType: string;
+    createdAt: Date;
+  }> = [];
+
+  let appointmentRows: Array<{
+    id: string;
+    studentName: string;
+    status: string;
+    scheduledStart: Date;
+    staffName: string | null;
+  }> = [];
+
+  let gallery: any[] = [];
+  let leadership: any[] = [];
+  let publicAnnouncements: any[] = [];
+  let training: any[] = [];
+
+  try {
+    const rawOfficers = await db
+      .select({
+        id: staffProfiles.id,
+        userId: staffProfiles.userId,
+        fullName: staffProfiles.fullName,
+        staffCode: staffProfiles.staffCode,
+        designation: staffProfiles.designation,
+        canManageAppointments: staffProfiles.canManageAppointments,
+        canManageServices: staffProfiles.canManageServices,
+        createdAt: staffProfiles.createdAt,
+        email: users.email,
+        isActive: users.isActive,
+      })
+      .from(staffProfiles)
+      .innerJoin(users, eq(staffProfiles.userId, users.id))
+      .orderBy(desc(staffProfiles.createdAt));
+
+    officers = rawOfficers.map((o) => ({
+      ...o,
+      canManageAppointments: Boolean(o.canManageAppointments),
+      canManageServices: Boolean(o.canManageServices),
+    }));
+
+    students = await db
+      .select({
+        id: studentProfiles.id,
+        fullName: studentProfiles.fullName,
+        regNumber: studentProfiles.regNumber,
+        department: studentProfiles.department,
+        level: studentProfiles.level,
+        email: users.email,
+        isActive: users.isActive,
+        avatarUrl: studentProfiles.avatarUrl,
+        createdAt: studentProfiles.createdAt,
+      })
+      .from(studentProfiles)
+      .innerJoin(users, eq(studentProfiles.userId, users.id))
+      .orderBy(desc(studentProfiles.createdAt))
+      .limit(10);
+
+    logs = await db
+      .select({
+        id: auditLogs.id,
+        action: auditLogs.action,
+        entityType: auditLogs.entityType,
+        createdAt: auditLogs.createdAt,
+      })
+      .from(auditLogs)
+      .where(
+        and(
+          ne(auditLogs.action, "USER_LOGIN"),
+          or(
+            like(auditLogs.action, "MODULE_%"),
+            inArray(auditLogs.entityType, [
+              "learning_modules",
+              "module_assignments",
+            ]),
+          ),
         ),
-      ),
-    )
-    .orderBy(desc(auditLogs.createdAt))
-    .limit(10);
+      )
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(10);
 
-  const appointmentRows = await db
-    .select({
-      id: appointments.id,
-      studentName: studentProfiles.fullName,
-      status: appointments.status,
-      scheduledStart: appointments.scheduledStart,
-      staffName: staffProfiles.fullName,
-    })
-    .from(appointments)
-    .innerJoin(studentProfiles, eq(appointments.studentId, studentProfiles.id))
-    .leftJoin(staffProfiles, eq(appointments.staffId, staffProfiles.id))
-    .orderBy(desc(appointments.scheduledStart))
-    .limit(50);
+    appointmentRows = await db
+      .select({
+        id: appointments.id,
+        studentName: studentProfiles.fullName,
+        status: appointments.status,
+        scheduledStart: appointments.scheduledStart,
+        staffName: staffProfiles.fullName,
+      })
+      .from(appointments)
+      .innerJoin(studentProfiles, eq(appointments.studentId, studentProfiles.id))
+      .leftJoin(staffProfiles, eq(appointments.staffId, staffProfiles.id))
+      .orderBy(desc(appointments.scheduledStart))
+      .limit(50);
 
-  const [gallery, leadership, publicAnnouncements] = await Promise.all([
-    db
-      .select()
-      .from(galleryItems)
-      .orderBy(galleryItems.displayOrder, desc(galleryItems.createdAt)),
-    db
-      .select()
-      .from(leadershipProfiles)
-      .orderBy(
-        leadershipProfiles.displayOrder,
-        desc(leadershipProfiles.createdAt),
-      ),
-    db.select().from(announcements).orderBy(desc(announcements.createdAt)),
-  ]);
-  const training = await db
-    .select({
-      id: trainingVideos.id,
-      title: trainingVideos.title,
-      description: trainingVideos.description,
-      videoUrl: trainingVideos.videoUrl,
-      videoId: trainingVideos.videoId,
-      videoProvider: trainingVideos.videoProvider,
-      thumbnailUrl: trainingVideos.thumbnailUrl,
-      instructor: trainingVideos.instructor,
-      isPublished: trainingVideos.isPublished,
-      categoryName: trainingCategories.name,
-    })
-    .from(trainingVideos)
-    .innerJoin(
-      trainingCategories,
-      eq(trainingVideos.categoryId, trainingCategories.id),
-    )
-    .orderBy(trainingVideos.displayOrder, desc(trainingVideos.createdAt));
+    const [galleryData, leadershipData, announcementData] = await Promise.all([
+      db
+        .select()
+        .from(galleryItems)
+        .orderBy(galleryItems.displayOrder, desc(galleryItems.createdAt)),
+      db
+        .select()
+        .from(leadershipProfiles)
+        .orderBy(
+          leadershipProfiles.displayOrder,
+          desc(leadershipProfiles.createdAt),
+        ),
+      db.select().from(announcements).orderBy(desc(announcements.createdAt)),
+    ]);
+    gallery = galleryData;
+    leadership = leadershipData;
+    publicAnnouncements = announcementData;
+
+    training = await db
+      .select({
+        id: trainingVideos.id,
+        title: trainingVideos.title,
+        description: trainingVideos.description,
+        videoUrl: trainingVideos.videoUrl,
+        videoId: trainingVideos.videoId,
+        videoProvider: trainingVideos.videoProvider,
+        thumbnailUrl: trainingVideos.thumbnailUrl,
+        instructor: trainingVideos.instructor,
+        isPublished: trainingVideos.isPublished,
+        categoryName: trainingCategories.name,
+      })
+      .from(trainingVideos)
+      .innerJoin(
+        trainingCategories,
+        eq(trainingVideos.categoryId, trainingCategories.id),
+      )
+      .orderBy(trainingVideos.displayOrder, desc(trainingVideos.createdAt));
+  } catch (err) {
+    console.error("[SuperAdminDashboard] Error loading dashboard data:", err);
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0A1A] text-white">

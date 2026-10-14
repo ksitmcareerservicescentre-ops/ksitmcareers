@@ -6,7 +6,6 @@ import { studentProfiles } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import {
   listJobPostingsAction,
-  seedStandardJobsAction,
 } from "@/actions/jobs";
 import { getMyRecommendedJobsAction } from "@/actions/employers";
 import { StudentJobsView } from "@/components/jobs/student-jobs-view";
@@ -35,12 +34,8 @@ export default async function StudentJobsPage() {
 
   if (!student) redirect("/login");
 
-  // Fetch or seed job postings
-  let jobs = await listJobPostingsAction({ publishedOnly: true });
-  if (jobs.length === 0) {
-    await seedStandardJobsAction();
-    jobs = await listJobPostingsAction({ publishedOnly: true });
-  }
+  // Fetch job postings directly from database
+  const jobs = await listJobPostingsAction({ publishedOnly: true });
 
   // Fetch student's personal recommendations
   const recRes = await getMyRecommendedJobsAction();

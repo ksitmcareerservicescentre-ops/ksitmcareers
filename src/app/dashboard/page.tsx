@@ -8,12 +8,15 @@ import {
   studentServiceEntitlements,
   careerServices,
   consultationRequests,
+  appointments,
+  staffProfiles,
   assessmentAttempts,
   virtualInternshipEnrollments,
   jobRecommendations,
 } from "@/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUser, ensureStudentProfileForUser } from "@/lib/auth/session";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { StudentAppointmentScheduler } from "@/components/dashboard/student-appointment-scheduler";
 
 export const metadata: Metadata = {
   title: "Student Dashboard — KSITM Careers",
@@ -36,6 +39,9 @@ export default async function StudentDashboardPage() {
   if (user.role === "STAFF") {
     redirect("/staff");
   }
+  if (user.role === "EMPLOYER") {
+    redirect("/employer");
+  }
 
   let student;
   try {
@@ -50,8 +56,30 @@ export default async function StudentDashboardPage() {
   }
 
   if (!student) {
-    console.error("[Dashboard] Student profile not found for user:", user.id);
-    redirect("/login");
+    try {
+      const healedProfile = await ensureStudentProfileForUser(user.id, user.email);
+      if (healedProfile) {
+        student = healedProfile as unknown as InferSelectModel<typeof studentProfiles>;
+      }
+    } catch (healErr) {
+      console.error("[Dashboard] Auto-heal error:", healErr);
+    }
+  }
+
+  if (!student) {
+    student = {
+      id: user.id,
+      userId: user.id,
+      masterRecordId: null,
+      regNumber: "KSITM/STUDENT",
+      fullName: user.email.split("@")[0].toUpperCase(),
+      department: "Computer Software Engineering",
+      level: "National Diploma I (ND 1)",
+      phone: null,
+      avatarUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
   }
 
   // Fetch student's individual career service entitlements
@@ -93,16 +121,91 @@ export default async function StudentDashboardPage() {
     console.error("[Dashboard] Error fetching entitlements:", err);
   }
 
-  // Fetch consultation requests
-  type Consultation = InferSelectModel<typeof consultationRequests>;
-  let recentConsultations: Consultation[] = [];
+  // Fetch student's scheduled appointments
+  let studentAppointments: Array<{
+    id: string;
+    requestId?: string | null;
+    staffId: string;
+    staffName: string;
+    staffDesignation?: string | null;
+    scheduledStart: Date;
+    scheduledEnd: Date;
+    meetingLocation: string;
+    status: "SCHEDULED" | "RESCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+    studentVisibleNotes?: string | null;
+    createdAt: Date;
+  }> = [];
+
   try {
-    recentConsultations = await db
+    const rawAppts = await db
+      .select({
+        id: appointments.id,
+        requestId: appointments.consultationRequestId,
+        staffId: appointments.staffId,
+        staffName: staffProfiles.fullName,
+        staffDesignation: staffProfiles.designation,
+        scheduledStart: appointments.scheduledStart,
+        scheduledEnd: appointments.scheduledEnd,
+        meetingLocation: appointments.meetingLocation,
+        status: appointments.status,
+        studentVisibleNotes: appointments.studentVisibleNotes,
+        createdAt: appointments.createdAt,
+      })
+      .from(appointments)
+      .leftJoin(staffProfiles, eq(appointments.staffId, staffProfiles.id))
+      .where(eq(appointments.studentId, student.id))
+      .orderBy(desc(appointments.scheduledStart));
+
+    studentAppointments = rawAppts.map((a) => ({
+      id: a.id,
+      requestId: a.requestId,
+      staffId: a.staffId || "",
+      staffName: a.staffName || "Career Advisory Staff",
+      staffDesignation: a.staffDesignation,
+      scheduledStart: a.scheduledStart,
+      scheduledEnd: a.scheduledEnd,
+      meetingLocation: a.meetingLocation || "Career Services Centre",
+      status: a.status as "SCHEDULED" | "RESCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW",
+      studentVisibleNotes: a.studentVisibleNotes,
+      createdAt: a.createdAt,
+    }));
+  } catch (err) {
+    console.error("[Dashboard] Error fetching appointments:", err);
+  }
+
+  // Fetch consultation requests
+  let studentConsultations: Array<{
+    id: string;
+    category: string;
+    reason: string;
+    preferredDate: string;
+    preferredTimeSlot: string;
+    status: "REQUESTED" | "UNDER_REVIEW" | "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+    studentNotes?: string | null;
+    reviewedByStaffId?: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }> = [];
+
+  try {
+    const rawReqs = await db
       .select()
       .from(consultationRequests)
       .where(eq(consultationRequests.studentId, student.id))
-      .orderBy(desc(consultationRequests.createdAt))
-      .limit(5);
+      .orderBy(desc(consultationRequests.createdAt));
+
+    studentConsultations = rawReqs.map((r) => ({
+      id: r.id,
+      category: r.category,
+      reason: r.reason,
+      preferredDate: String(r.preferredDate),
+      preferredTimeSlot: r.preferredTimeSlot,
+      status: r.status as "REQUESTED" | "UNDER_REVIEW" | "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW",
+      studentNotes: r.studentNotes,
+      reviewedByStaffId: r.reviewedByStaffId,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
   } catch (err) {
     console.error("[Dashboard] Error fetching consultations:", err);
   }
@@ -149,13 +252,13 @@ export default async function StudentDashboardPage() {
       <DashboardHeader student={student} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Link
             href="/dashboard/modules"
             className="group block rounded-2xl border border-orange-400/30 bg-[#101023] p-5 text-white transition-all hover:border-orange-500 hover:bg-[#14142d]"
           >
             <div className="flex items-center justify-between">
-              <span className="text-lg font-bold group-hover:text-orange-400 transition-colors">
+              <span className="text-base sm:text-lg font-bold group-hover:text-orange-400 transition-colors">
                 My Modules
               </span>
               <i className="fas fa-arrow-right text-orange-400 group-hover:translate-x-1 transition-transform" />
@@ -171,12 +274,12 @@ export default async function StudentDashboardPage() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold group-hover:text-purple-300 transition-colors">
+                <span className="text-base sm:text-lg font-bold group-hover:text-purple-300 transition-colors">
                   Job Readiness
                 </span>
                 {assignedAssessmentsCount > 0 && (
                   <span className="rounded-full bg-purple-500/20 border border-purple-500/30 px-2 py-0.5 text-[10px] font-bold text-purple-300">
-                    {assignedAssessmentsCount} Assigned
+                    {assignedAssessmentsCount}
                   </span>
                 )}
               </div>
@@ -193,12 +296,12 @@ export default async function StudentDashboardPage() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold group-hover:text-cyan-300 transition-colors">
+                <span className="text-base sm:text-lg font-bold group-hover:text-cyan-300 transition-colors">
                   Virtual Internships
                 </span>
                 {activeInternshipsCount > 0 && (
                   <span className="rounded-full bg-cyan-500/20 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
-                    {activeInternshipsCount} Active
+                    {activeInternshipsCount}
                   </span>
                 )}
               </div>
@@ -215,7 +318,7 @@ export default async function StudentDashboardPage() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold group-hover:text-emerald-300 transition-colors">
+                <span className="text-base sm:text-lg font-bold group-hover:text-emerald-300 transition-colors">
                   Job Board
                 </span>
                 {recommendedJobsCount > 0 && (
@@ -230,7 +333,28 @@ export default async function StudentDashboardPage() {
               Verified employer openings, advisor recommendations, and supervision.
             </span>
           </Link>
+
+          <Link
+            href="/dashboard/resume"
+            className="group block rounded-2xl border border-amber-400/30 bg-[#101023] p-5 text-white transition-all hover:border-amber-500 hover:bg-[#14142d]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base sm:text-lg font-bold group-hover:text-amber-300 transition-colors">
+                  Resume Studio
+                </span>
+                <span className="rounded-full bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                  ATS Ready
+                </span>
+              </div>
+              <i className="fas fa-arrow-right text-amber-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+            <span className="mt-2 block text-xs text-gray-400">
+              Harvard ATS resume builder, live scoring audit, and instant PDF download.
+            </span>
+          </Link>
         </div>
+
         {/* Welcome Banner */}
         <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#40297B]/40 via-[#101023] to-[#FF7F24]/15 border border-white/10 p-6 sm:p-10">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -276,13 +400,13 @@ export default async function StudentDashboardPage() {
             </div>
 
             <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-3">
-              <Link
-                href="/services/consultations"
-                className="py-3 px-6 rounded-xl bg-[#FF7F24] text-[#0A0A1A] font-extrabold text-sm hover:bg-[#40297B] hover:text-white transition-all text-center shadow-lg shadow-[#FF7F24]/20 flex items-center justify-center gap-2"
+              <a
+                href="#appointments-section"
+                className="py-3 px-6 rounded-xl bg-[#FF7F24] text-[#0A0A1A] font-extrabold text-sm hover:bg-[#40297B] hover:text-white transition-all text-center shadow-lg shadow-[#FF7F24]/20 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <i className="fas fa-calendar-check" aria-hidden="true"></i>
                 <span>Request Consultation</span>
-              </Link>
+              </a>
             </div>
           </div>
         </section>
@@ -309,17 +433,17 @@ export default async function StudentDashboardPage() {
           <div className="bg-[#101023] border border-white/10 rounded-2xl p-5 sm:p-6">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs uppercase font-bold tracking-wider text-gray-400">
-                Consultations
+                Advisory Sessions
               </span>
               <span className="w-8 h-8 rounded-lg bg-[#FF7F24]/10 border border-[#FF7F24]/20 text-[#FF7F24] flex items-center justify-center text-sm">
                 <i className="fas fa-user-tie" aria-hidden="true"></i>
               </span>
             </div>
             <p className="text-2xl sm:text-3xl font-extrabold text-white">
-              {recentConsultations.length}
+              {studentAppointments.length + studentConsultations.length}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              Appointments & advisory sessions
+              Appointments & active requests
             </p>
           </div>
 
@@ -370,81 +494,163 @@ export default async function StudentDashboardPage() {
               </h2>
             </div>
             <p className="text-xs text-gray-400 max-w-md">
-              Career Assistants assess individual student needs and activate
-              advanced specialized services over time.
+              Core institutional career services are immediately accessible to all verified KSITM scholars.
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {entitlements.map((entitlement) => {
-              const isActive = entitlement.status === "ACTIVE";
-              const isLocked = entitlement.status === "LOCKED";
+              const SERVICE_CONFIG: Record<
+                string,
+                {
+                  href: string;
+                  actionLabel: string;
+                  isAnchor?: boolean;
+                  comingSoon?: boolean;
+                  note?: string;
+                }
+              > = {
+                consultations: {
+                  href: "#appointments-section",
+                  actionLabel: "Appointment Scheduler",
+                  isAnchor: true,
+                  note: "Schedule & manage advisor meetings",
+                },
+                resume: {
+                  href: "/dashboard/resume",
+                  actionLabel: "Open Resume Studio",
+                  note: "ATS Harvard formatting & scoring",
+                },
+                training: {
+                  href: "/dashboard/modules",
+                  actionLabel: "Open Training Modules",
+                  note: "Institutional employability courseware",
+                },
+                internships: {
+                  href: "/dashboard/internships",
+                  actionLabel: "Open Virtual Internships",
+                  note: "Simulated projects & evaluation",
+                },
+                employers: {
+                  href: "/dashboard/jobs",
+                  actionLabel: "Browse Job Board",
+                  note: "Verified vacancies & placement",
+                },
+                readiness: {
+                  href: "/dashboard/assessments",
+                  actionLabel: "Take Assessments",
+                  note: "Diagnostic scoring & exams",
+                },
+                mentorship: {
+                  href: "#appointments-section",
+                  actionLabel: "Coming Soon",
+                  comingSoon: true,
+                  note: "Alumni & Industry Mentor Pairing",
+                },
+              };
+
+              const config = SERVICE_CONFIG[entitlement.slug] || {
+                href: `/services/${entitlement.slug}`,
+                actionLabel: "Explore Service",
+              };
+
+              const isComingSoon = config.comingSoon || entitlement.status === "COMING_SOON";
+              const isActive = !isComingSoon && entitlement.status === "ACTIVE";
               const isAi = entitlement.slug.includes("ai");
 
               return (
                 <article
                   key={entitlement.id}
-                  className={`relative rounded-2xl p-6 transition-all duration-300 ${
+                  className={`relative rounded-2xl p-6 transition-all duration-300 flex flex-col justify-between ${
                     isAi
                       ? "bg-gradient-to-br from-[#40297B]/40 to-[#FF7F24]/20 border border-[#FF7F24]/40"
                       : "bg-[#101023] border border-white/10 hover:border-white/20"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <span className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-[#FF7F24] flex items-center justify-center text-xl">
-                      <i
-                        className={`fas fa-${entitlement.icon || "star"}`}
-                        aria-hidden="true"
-                      ></i>
-                    </span>
+                  <div>
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <span className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-[#FF7F24] flex items-center justify-center text-xl">
+                        <i
+                          className={`fas fa-${entitlement.icon || "star"}`}
+                          aria-hidden="true"
+                        ></i>
+                      </span>
 
-                    {/* Status Badge */}
-                    <span
-                      className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
-                        isActive
-                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                          : isLocked
+                      {/* Status Badge */}
+                      <span
+                        className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                          isComingSoon
                             ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-                            : "bg-gray-500/10 border-gray-500/30 text-gray-400"
-                      }`}
-                    >
-                      {isActive
-                        ? "● Active"
-                        : isLocked
-                          ? "🔒 Locked"
-                          : entitlement.status}
-                    </span>
+                            : isActive
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                              : "bg-gray-500/10 border-gray-500/30 text-gray-400"
+                        }`}
+                      >
+                        {isComingSoon
+                          ? "⏳ Coming Soon"
+                          : isActive
+                            ? "● Active"
+                            : "🔒 Locked"}
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-white mb-2">
+                      {entitlement.title}
+                    </h3>
+                    <p className="text-gray-400 text-xs leading-relaxed mb-6">
+                      {entitlement.summary}
+                    </p>
                   </div>
 
-                  <h3 className="text-lg font-bold text-white mb-2">
-                    {entitlement.title}
-                  </h3>
-                  <p className="text-gray-400 text-xs leading-relaxed mb-6">
-                    {entitlement.summary}
-                  </p>
-
-                  <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs">
+                  <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs mt-auto">
                     <span className="text-gray-400">
-                      {isLocked
-                        ? "Requires Advisor Assessment"
-                        : "Service Ready"}
+                      {isComingSoon
+                        ? "Launching Next Cohort"
+                        : isActive
+                          ? "Service Active & Ready"
+                          : "Requires Advisor Assessment"}
                     </span>
-                    <Link
-                      href={`/services/${entitlement.slug}`}
-                      className="text-[#FF7F24] font-bold hover:text-white transition-colors inline-flex items-center gap-1"
-                    >
-                      <span>Explore</span>
-                      <i
-                        className="fas fa-chevron-right text-[10px]"
-                        aria-hidden="true"
-                      ></i>
-                    </Link>
+
+                    {isComingSoon ? (
+                      <span className="text-amber-400/80 font-bold inline-flex items-center gap-1 cursor-default">
+                        <span>Coming Soon</span>
+                        <i className="fas fa-clock text-[10px]" aria-hidden="true" />
+                      </span>
+                    ) : config.isAnchor ? (
+                      <a
+                        href={config.href}
+                        className="text-[#FF7F24] font-bold hover:text-white transition-colors inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>{config.actionLabel}</span>
+                        <i
+                          className="fas fa-chevron-right text-[10px]"
+                          aria-hidden="true"
+                        ></i>
+                      </a>
+                    ) : (
+                      <Link
+                        href={config.href}
+                        className="text-[#FF7F24] font-bold hover:text-white transition-colors inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>{config.actionLabel}</span>
+                        <i
+                          className="fas fa-chevron-right text-[10px]"
+                          aria-hidden="true"
+                        ></i>
+                      </Link>
+                    )}
                   </div>
                 </article>
               );
             })}
           </div>
         </section>
+
+        {/* Student Appointment Scheduler Component */}
+        <StudentAppointmentScheduler
+          initialAppointments={studentAppointments}
+          initialRequests={studentConsultations}
+        />
 
         {/* Consultations & Support Callout */}
         <section className="rounded-3xl bg-gradient-to-br from-[#101023] to-[#40297B]/30 border border-white/10 p-6 sm:p-8">

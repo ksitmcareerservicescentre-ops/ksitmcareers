@@ -13,7 +13,7 @@ import {
   users,
   type PartnerEmployerRecord,
 } from "@/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUser, ensureEmployerProfileForUser } from "@/lib/auth/session";
 import { recordAuditLog } from "@/lib/audit";
 import { hashPassword } from "@/lib/auth/password";
 import { listJobPostingsAction, type JobPostingItem } from "@/actions/jobs";
@@ -974,11 +974,20 @@ export async function getEmployerPortalDataAction(): Promise<{
       throw new Error("Employer authentication required.");
     }
 
-    const [employer] = await db
+    let [employer] = await db
       .select()
       .from(partnerEmployers)
       .where(eq(partnerEmployers.userId, currentUser.id))
       .limit(1);
+
+    if (!employer) {
+      await ensureEmployerProfileForUser(currentUser.id, currentUser.email);
+      [employer] = await db
+        .select()
+        .from(partnerEmployers)
+        .where(eq(partnerEmployers.userId, currentUser.id))
+        .limit(1);
+    }
 
     if (!employer) {
       throw new Error(

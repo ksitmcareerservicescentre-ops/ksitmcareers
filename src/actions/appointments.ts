@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq, desc, or } from "drizzle-orm";
+import { eq, desc, or, and } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appointments,
@@ -11,7 +11,7 @@ import {
   studentOccurrences,
   studentServiceEntitlements,
 } from "@/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUser, ensureStudentProfileForUser } from "@/lib/auth/session";
 import { recordAuditLog } from "@/lib/audit";
 
 export type AppointmentItem = {
@@ -360,5 +360,363 @@ export async function completeAppointmentWithNotesAction(
   } catch (err: unknown) {
     console.error("[completeAppointmentWithNotesAction] Error:", err);
     return { success: false, error: err instanceof Error ? err.message : "Failed to update appointment outcome." };
+  }
+}
+
+export type StudentConsultationRequestItem = {
+  id: string;
+  category: string;
+  reason: string;
+  preferredDate: string;
+  preferredTimeSlot: string;
+  status: "REQUESTED" | "UNDER_REVIEW" | "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  studentNotes?: string | null;
+  reviewedByStaffId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type StudentScheduledAppointmentItem = {
+  id: string;
+  requestId?: string | null;
+  staffId: string;
+  staffName: string;
+  staffDesignation?: string | null;
+  scheduledStart: Date;
+  scheduledEnd: Date;
+  meetingLocation: string;
+  status: "SCHEDULED" | "RESCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  studentVisibleNotes?: string | null;
+  createdAt: Date;
+};
+
+/**
+ * Student: Submit a new consultation request
+ */
+export async function requestConsultationAction(data: {
+  category: string;
+  reason: string;
+  preferredDate: string; // YYYY-MM-DD
+  preferredTimeSlot: string; // e.g. "09:00 - 10:00 AM"
+  studentNotes?: string;
+}): Promise<{ success: boolean; requestId?: string; error?: string }> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return { success: false, error: "Please log in to submit a consultation request." };
+    }
+
+    let studentProfileId = currentUser.studentProfile?.id;
+    if (!studentProfileId) {
+      const [found] = await db
+        .select({ id: studentProfiles.id })
+        .from(studentProfiles)
+        .where(eq(studentProfiles.userId, currentUser.id))
+        .limit(1);
+
+      if (found) {
+        studentProfileId = found.id;
+      } else {
+        const healed = await ensureStudentProfileForUser(currentUser.id, currentUser.email);
+        if (healed) studentProfileId = healed.id;
+      }
+    }
+
+    if (!studentProfileId) {
+      return { success: false, error: "Student profile not found. Please contact administration." };
+    }
+
+    if (!data.category?.trim()) {
+      return { success: false, error: "Please select a consultation category." };
+    }
+    if (!data.reason?.trim()) {
+      return { success: false, error: "Please provide a reason or objective for the consultation." };
+    }
+    if (!data.preferredDate) {
+      return { success: false, error: "Please select your preferred date." };
+    }
+    if (!data.preferredTimeSlot?.trim()) {
+      return { success: false, error: "Please select a preferred time slot." };
+    }
+
+    const [created] = await db
+      .insert(consultationRequests)
+      .values({
+        studentId: studentProfileId,
+        category: data.category.trim(),
+        reason: data.reason.trim(),
+        preferredDate: data.preferredDate,
+        preferredTimeSlot: data.preferredTimeSlot.trim(),
+        studentNotes: data.studentNotes?.trim() || null,
+        status: "REQUESTED",
+      })
+      .returning();
+
+    // Log occurrence on student dossier
+    await db.insert(studentOccurrences).values({
+      studentId: studentProfileId,
+      actorUserId: currentUser.id,
+      actorName: currentUser.studentProfile?.fullName || currentUser.email,
+      category: "OCCURRENCE",
+      title: `Consultation Requested: ${data.category}`,
+      description: `Student requested ${data.category} consultation for ${data.preferredDate} (${data.preferredTimeSlot}). Reason: ${data.reason.trim()}`,
+    });
+
+    await recordAuditLog({
+      actorId: currentUser.id,
+      action: "CONSULTATION_REQUEST_SUBMITTED",
+      entityType: "consultation_requests",
+      entityId: created.id,
+      details: {
+        category: data.category,
+        preferredDate: data.preferredDate,
+        preferredTimeSlot: data.preferredTimeSlot,
+      },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/admin");
+    revalidatePath("/staff");
+
+    return { success: true, requestId: created.id };
+  } catch (err: unknown) {
+    console.error("[requestConsultationAction] Error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to place consultation request.",
+    };
+  }
+}
+
+/**
+ * Student: Fetch own scheduled appointments and submitted consultation requests
+ */
+export async function getStudentAppointmentsAction(): Promise<{
+  appointments: StudentScheduledAppointmentItem[];
+  requests: StudentConsultationRequestItem[];
+}> {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { appointments: [], requests: [] };
+
+  let studentProfileId = currentUser.studentProfile?.id;
+  if (!studentProfileId) {
+    const [found] = await db
+      .select({ id: studentProfiles.id })
+      .from(studentProfiles)
+      .where(eq(studentProfiles.userId, currentUser.id))
+      .limit(1);
+    if (found) studentProfileId = found.id;
+  }
+
+  if (!studentProfileId) return { appointments: [], requests: [] };
+
+  try {
+    const appts = await db
+      .select({
+        id: appointments.id,
+        requestId: appointments.consultationRequestId,
+        staffId: appointments.staffId,
+        staffName: staffProfiles.fullName,
+        staffDesignation: staffProfiles.designation,
+        scheduledStart: appointments.scheduledStart,
+        scheduledEnd: appointments.scheduledEnd,
+        meetingLocation: appointments.meetingLocation,
+        status: appointments.status,
+        studentVisibleNotes: appointments.studentVisibleNotes,
+        createdAt: appointments.createdAt,
+      })
+      .from(appointments)
+      .leftJoin(staffProfiles, eq(appointments.staffId, staffProfiles.id))
+      .where(eq(appointments.studentId, studentProfileId))
+      .orderBy(desc(appointments.scheduledStart));
+
+    const reqs = await db
+      .select({
+        id: consultationRequests.id,
+        category: consultationRequests.category,
+        reason: consultationRequests.reason,
+        preferredDate: consultationRequests.preferredDate,
+        preferredTimeSlot: consultationRequests.preferredTimeSlot,
+        status: consultationRequests.status,
+        studentNotes: consultationRequests.studentNotes,
+        reviewedByStaffId: consultationRequests.reviewedByStaffId,
+        createdAt: consultationRequests.createdAt,
+        updatedAt: consultationRequests.updatedAt,
+      })
+      .from(consultationRequests)
+      .where(eq(consultationRequests.studentId, studentProfileId))
+      .orderBy(desc(consultationRequests.createdAt));
+
+    return {
+      appointments: appts.map((a) => ({
+        id: a.id,
+        requestId: a.requestId,
+        staffId: a.staffId || "",
+        staffName: a.staffName || "Career Services Officer",
+        staffDesignation: a.staffDesignation,
+        scheduledStart: a.scheduledStart,
+        scheduledEnd: a.scheduledEnd,
+        meetingLocation: a.meetingLocation || "Career Services Centre",
+        status: a.status as "SCHEDULED" | "RESCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW",
+        studentVisibleNotes: a.studentVisibleNotes,
+        createdAt: a.createdAt,
+      })),
+      requests: reqs.map((r) => ({
+        id: r.id,
+        category: r.category,
+        reason: r.reason,
+        preferredDate: String(r.preferredDate),
+        preferredTimeSlot: r.preferredTimeSlot,
+        status: r.status as "REQUESTED" | "UNDER_REVIEW" | "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW",
+        studentNotes: r.studentNotes,
+        reviewedByStaffId: r.reviewedByStaffId,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      })),
+    };
+  } catch (err) {
+    console.error("[getStudentAppointmentsAction] Error:", err);
+    return { appointments: [], requests: [] };
+  }
+}
+
+/**
+ * Student or Admin: Cancel a consultation request
+ */
+export async function cancelStudentConsultationAction(
+  requestId: string,
+  reason?: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return { success: false, error: "Unauthorized." };
+
+    const [req] = await db
+      .select()
+      .from(consultationRequests)
+      .where(eq(consultationRequests.id, requestId))
+      .limit(1);
+
+    if (!req) return { success: false, error: "Consultation request not found." };
+
+    // Permission check
+    if (
+      currentUser.role === "STUDENT" &&
+      currentUser.studentProfile?.id !== req.studentId
+    ) {
+      return { success: false, error: "Access denied." };
+    }
+
+    await db
+      .update(consultationRequests)
+      .set({
+        status: "CANCELLED",
+        studentNotes: reason
+          ? `${req.studentNotes || ""}\n[Cancellation Reason: ${reason}]`.trim()
+          : req.studentNotes,
+        updatedAt: new Date(),
+      })
+      .where(eq(consultationRequests.id, requestId));
+
+    // Also cancel any linked appointment
+    await db
+      .update(appointments)
+      .set({
+        status: "CANCELLED",
+        studentVisibleNotes: reason
+          ? `Cancelled by student: ${reason}`
+          : "Appointment cancelled.",
+        updatedAt: new Date(),
+      })
+      .where(eq(appointments.consultationRequestId, requestId));
+
+    await recordAuditLog({
+      actorId: currentUser.id,
+      action: "CONSULTATION_REQUEST_CANCELLED",
+      entityType: "consultation_requests",
+      entityId: requestId,
+      details: { reason },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/admin");
+    revalidatePath("/staff");
+
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("[cancelStudentConsultationAction] Error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to cancel consultation request.",
+    };
+  }
+}
+
+/**
+ * Student or Staff: Cancel a scheduled appointment
+ */
+export async function cancelStudentAppointmentAction(
+  appointmentId: string,
+  reason?: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return { success: false, error: "Unauthorized." };
+
+    const [appt] = await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.id, appointmentId))
+      .limit(1);
+
+    if (!appt) return { success: false, error: "Appointment not found." };
+
+    if (
+      currentUser.role === "STUDENT" &&
+      currentUser.studentProfile?.id !== appt.studentId
+    ) {
+      return { success: false, error: "Access denied." };
+    }
+
+    await db
+      .update(appointments)
+      .set({
+        status: "CANCELLED",
+        internalStaffNotes: reason
+          ? `Cancelled. Note: ${reason}`
+          : "Cancelled by student or staff.",
+        updatedAt: new Date(),
+      })
+      .where(eq(appointments.id, appointmentId));
+
+    if (appt.consultationRequestId) {
+      await db
+        .update(consultationRequests)
+        .set({
+          status: "CANCELLED",
+          updatedAt: new Date(),
+        })
+        .where(eq(consultationRequests.id, appt.consultationRequestId));
+    }
+
+    await recordAuditLog({
+      actorId: currentUser.id,
+      action: "APPOINTMENT_CANCELLED",
+      entityType: "appointments",
+      entityId: appointmentId,
+      details: { reason },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/admin");
+    revalidatePath("/staff");
+
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("[cancelStudentAppointmentAction] Error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to cancel appointment.",
+    };
   }
 }

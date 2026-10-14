@@ -5,7 +5,6 @@ import {
   getStudentResumeAction,
   saveStudentResumeAction,
   listAllResumesAction,
-  seedStandardResumesAction,
   type ResumeProfileData,
   type ResumeSummaryRow,
   type ResumeEducationItem,
@@ -61,7 +60,13 @@ const secondaryButton =
 const inputStyle =
   "w-full rounded-xl border border-white/15 bg-[#090918] px-3.5 py-2 text-xs sm:text-sm text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500/30";
 
-export function ResumeBuilderWorkspace() {
+export function ResumeBuilderWorkspace({
+  studentMode = false,
+  studentId,
+}: {
+  studentMode?: boolean;
+  studentId?: string;
+} = {}) {
   const [activeTab, setActiveTab] = useState<"STUDIO" | "DIRECTORY">("STUDIO");
   const [editorSection, setEditorSection] = useState<
     "HEADER" | "SUMMARY" | "EXPERIENCE" | "EDUCATION" | "SKILLS" | "PROJECTS" | "CERTS"
@@ -72,7 +77,7 @@ export function ResumeBuilderWorkspace() {
 
   // Student list for admin selector
   const [students, setStudents] = useState<StudentTableRow[]>([]);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(studentId || "");
 
   // Resume State
   const [resume, setResume] = useState<ResumeProfileData | null>(null);
@@ -90,8 +95,12 @@ export function ResumeBuilderWorkspace() {
 
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Load students for switcher
+  // Load students for switcher (Admin only)
   useEffect(() => {
+    if (studentMode) {
+      if (studentId) setSelectedStudentId(studentId);
+      return;
+    }
     let active = true;
     void listStudentsAction()
       .then((rows) => {
@@ -108,7 +117,7 @@ export function ResumeBuilderWorkspace() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [studentMode, studentId]);
 
   // Load resume when selectedStudentId changes
   useEffect(() => {
@@ -212,24 +221,6 @@ export function ResumeBuilderWorkspace() {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const handleSeedSamples = () => {
-    if (confirm("Seed 3 industry-grade ATS standard sample resumes into the database?")) {
-      startTransition(async () => {
-        const res = await seedStandardResumesAction();
-        if (res.success) {
-          alert(`Successfully synchronized ${res.seededCount} industry-grade ATS student resumes.`);
-          if (selectedStudentId) {
-            const fresh = await getStudentResumeAction(selectedStudentId);
-            setResume(fresh);
-          }
-          if (activeTab === "DIRECTORY") loadDirectory();
-        } else {
-          alert(res.error || "Failed to seed sample resumes.");
-        }
-      });
-    }
   };
 
   const handleExportJSON = () => {
@@ -509,33 +500,24 @@ export function ResumeBuilderWorkspace() {
             <span>Interactive Resume Studio</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("DIRECTORY")}
-            className={`inline-flex items-center gap-2 border-b-2 pb-3.5 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === "DIRECTORY"
-                ? "border-orange-500 text-orange-400"
-                : "border-transparent text-gray-400 hover:text-gray-200"
-            }`}
-          >
-            <i className="fas fa-folder-tree" />
-            <span>Institutional Resumes Directory ({directoryResumes.length})</span>
-          </button>
+          {!studentMode && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("DIRECTORY")}
+              className={`inline-flex items-center gap-2 border-b-2 pb-3.5 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === "DIRECTORY"
+                  ? "border-orange-500 text-orange-400"
+                  : "border-transparent text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              <i className="fas fa-folder-tree" />
+              <span>Institutional Resumes Directory ({directoryResumes.length})</span>
+            </button>
+          )}
         </div>
 
-        {/* Quick Tools & Seed Sample */}
+        {/* Quick Tools */}
         <div className="hidden sm:flex items-center gap-2 pb-3">
-          <button
-            type="button"
-            onClick={handleSeedSamples}
-            disabled={isPending}
-            className="text-[11px] font-semibold text-gray-400 hover:text-orange-400 transition-colors flex items-center gap-1 cursor-pointer"
-            title="Populate 3 industry-grade ATS resumes"
-          >
-            <i className="fas fa-database text-xs" />
-            <span>Seed Samples</span>
-          </button>
-          <span className="text-gray-600">·</span>
           <button
             type="button"
             onClick={handleExportJSON}
@@ -590,12 +572,15 @@ export function ResumeBuilderWorkspace() {
               <i className="fas fa-file-circle-question text-3xl text-gray-500" />
               <h3 className="text-sm font-bold text-white">No resumes created yet</h3>
               <p className="text-xs text-gray-400 max-w-md mx-auto">
-                No students have constructed resumes in the system yet. You can seed sample
-                resumes or select a student from the studio to build their profile.
+                No students have constructed resumes in the system yet. Select a student from the studio to build their profile.
               </p>
-              <button type="button" onClick={handleSeedSamples} className={orangeButton}>
-                <i className="fas fa-plus" />
-                <span>Seed Sample Resumes</span>
+              <button
+                type="button"
+                onClick={() => setActiveTab("STUDIO")}
+                className={orangeButton}
+              >
+                <i className="fas fa-file-pen" />
+                <span>Create Student Resume</span>
               </button>
             </div>
           ) : (
@@ -667,22 +652,29 @@ export function ResumeBuilderWorkspace() {
         <div className="space-y-6">
           {/* Top Customizer Toolbar */}
           <div className="grid grid-cols-1 gap-4 rounded-2xl border border-white/[0.08] bg-[#0c0c1e] p-4 lg:grid-cols-12 lg:items-center">
-            {/* Student Switcher for Admin */}
+            {/* Student Switcher for Admin / Student badge for student */}
             <div className="lg:col-span-4">
               <label className="text-[11px] font-mono text-gray-400 uppercase tracking-wider block mb-1">
-                Target Student
+                {studentMode ? "Candidate Profile" : "Target Student"}
               </label>
-              <select
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-[#090918] px-3 py-2 text-xs sm:text-sm text-white focus:border-orange-500 focus:outline-none"
-              >
-                {students.map((st) => (
-                  <option key={st.id} value={st.id}>
-                    {st.fullName} ({st.regNumber}) — {st.department || "No Dept"}
-                  </option>
-                ))}
-              </select>
+              {studentMode ? (
+                <div className="w-full rounded-xl border border-white/10 bg-[#090918] px-3.5 py-2 text-xs sm:text-sm text-white font-semibold flex items-center justify-between">
+                  <span>{resume?.fullName || "Verified Student Candidate"}</span>
+                  <span className="text-[10px] text-orange-400 font-mono">Verified Scholar</span>
+                </div>
+              ) : (
+                <select
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-[#090918] px-3 py-2 text-xs sm:text-sm text-white focus:border-orange-500 focus:outline-none"
+                >
+                  {students.map((st) => (
+                    <option key={st.id} value={st.id}>
+                      {st.fullName} ({st.regNumber}) — {st.department || "No Dept"}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Template Selector */}

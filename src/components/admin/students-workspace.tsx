@@ -13,7 +13,6 @@ import {
   createMasterRecordAction,
   updateMasterRecordAction,
   deleteMasterRecordAction,
-  seedStandardMasterRecordsAction,
   type StudentTableRow,
   type StudentDossierData,
   type MasterListTableRow,
@@ -202,20 +201,6 @@ export function StudentsWorkspace() {
     }
   };
 
-  const handleSeedMaster = () => {
-    startTransition(async () => {
-      const res = await seedStandardMasterRecordsAction();
-      if (res.success) {
-        await loadMasterList();
-        alert(
-          `Successfully synchronized ${res.addedCount} accredited KSITM institutional master records.`,
-        );
-      } else {
-        alert(res.error || "Failed to seed master records.");
-      }
-    });
-  };
-
   const handleDeleteMaster = async (id: string, name: string) => {
     if (
       confirm(
@@ -271,28 +256,14 @@ export function StudentsWorkspace() {
               <span>Enroll New Student</span>
             </button>
           ) : (
-            <>
-              <button
-                type="button"
-                onClick={handleSeedMaster}
-                disabled={isPending}
-                className={secondaryButton}
-                title="Populate standard accredited KSITM records"
-              >
-                <i
-                  className={`fas ${isPending ? "fa-circle-notch fa-spin" : "fa-magic"}`}
-                />
-                <span>Seed KSITM Master</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCreateMasterOpen(true)}
-                className={orangeButton}
-              >
-                <i className="fas fa-plus" />
-                <span>Add to Master List</span>
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={() => setCreateMasterOpen(true)}
+              className={orangeButton}
+            >
+              <i className="fas fa-plus" />
+              <span>Add to Master List</span>
+            </button>
           )}
         </div>
       </div>
@@ -699,17 +670,9 @@ export function StudentsWorkspace() {
               <i className="fas fa-clipboard-list text-4xl text-gray-500 mb-3" />
               <h3 className="text-base font-bold text-white">No Master Records Found</h3>
               <p className="mt-1 text-xs text-gray-400 max-w-md mx-auto">
-                No institutional records matched your filter criteria. You can add enrolled students individually or seed standard KSITM records.
+                No institutional records matched your filter criteria. You can add enrolled students to the official master list.
               </p>
               <div className="mt-4 flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleSeedMaster}
-                  className={secondaryButton}
-                >
-                  <i className="fas fa-magic" />
-                  <span>Seed KSITM Master Records</span>
-                </button>
                 <button
                   type="button"
                   onClick={() => setCreateMasterOpen(true)}

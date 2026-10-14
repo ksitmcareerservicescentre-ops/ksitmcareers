@@ -12,7 +12,6 @@ import {
   submitInternshipOutcomeAction,
   reviewInternshipSubmissionAction,
   getCumulativeStudentOutcomesAction,
-  seedStandardVirtualInternshipsAction,
   type VirtualInternshipItem,
   type EnrollmentTableRow,
   type CumulativeStudentOutcome,
@@ -186,23 +185,6 @@ export function VirtualInternshipWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, statusFilter, cumulativeDept]);
 
-  // Seed sample handler
-  const handleSeed = () => {
-    if (confirm("Seed 5 industry-grade Virtual Work Simulations with sample student outcomes?")) {
-      startTransition(async () => {
-        const res = await seedStandardVirtualInternshipsAction();
-        if (res.success) {
-          alert(`Successfully seeded ${res.seededCount} virtual internships and student enrollments.`);
-          await loadInternships();
-          if (activeTab === "ENROLLMENTS") await loadEnrollments();
-          if (activeTab === "CUMULATIVE") await loadCumulative();
-        } else {
-          alert(res.error || "Failed to seed virtual internships.");
-        }
-      });
-    }
-  };
-
   // Delete handler
   const handleDelete = async (id: string, title: string) => {
     if (confirm(`Are you sure you want to delete the simulation: "${title}"?`)) {
@@ -240,16 +222,6 @@ export function VirtualInternshipWorkspace() {
 
         {/* Global Action Bar */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleSeed}
-            disabled={isPending}
-            className={secondaryButton}
-            title="Seed 5 Standard Industry Work Simulations"
-          >
-            <i className="fas fa-database text-xs" />
-            <span>Seed Simulations</span>
-          </button>
 
           <button
             type="button"
@@ -432,12 +404,18 @@ export function VirtualInternshipWorkspace() {
               <i className="fas fa-laptop-code text-3xl text-gray-500" />
               <h3 className="text-sm font-bold text-white">No Virtual Internships Found</h3>
               <p className="text-xs text-gray-400 max-w-md mx-auto">
-                No simulations match your current filters. Create a new program or click &ldquo;Seed
-                Simulations&rdquo; to populate standard industry packages.
+                No simulations match your current filters. Create a new practical work simulation to engage students.
               </p>
-              <button type="button" onClick={handleSeed} className={orangeButton}>
-                <i className="fas fa-database text-xs" />
-                <span>Seed Sample Simulations</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditItem(null);
+                  setCreateModalOpen(true);
+                }}
+                className={orangeButton}
+              >
+                <i className="fas fa-plus text-xs" />
+                <span>Create Virtual Internship</span>
               </button>
             </div>
           ) : (
