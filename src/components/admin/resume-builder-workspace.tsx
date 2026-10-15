@@ -84,6 +84,7 @@ export function ResumeBuilderWorkspace({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [showAtsModal, setShowAtsModal] = useState(false);
 
@@ -221,6 +222,20 @@ export function ResumeBuilderWorkspace({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleCopyShareLink = async () => {
+    const targetId = resume?.studentId || selectedStudentId;
+    if (!targetId || typeof window === "undefined") return;
+    const url = `${window.location.origin}/resume/${targetId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
   };
 
   const handleExportJSON = () => {
@@ -464,6 +479,17 @@ export function ResumeBuilderWorkspace({
 
           <button
             type="button"
+            onClick={handleCopyShareLink}
+            disabled={!resume}
+            className={secondaryButton}
+            title="Copy shareable public resume link"
+          >
+            <i className={`fas ${copiedLink ? "fa-check text-emerald-400" : "fa-share-nodes"}`} />
+            <span className="hidden sm:inline">{copiedLink ? "Link Copied!" : "Share Link"}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handlePrint}
             className={secondaryButton}
             title="Print or Save as PDF"
@@ -629,16 +655,28 @@ export function ResumeBuilderWorkspace({
                         {new Date(row.updatedAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedStudentId(row.studentId);
-                            setActiveTab("STUDIO");
-                          }}
-                          className="rounded-lg bg-white/5 px-2.5 py-1 font-semibold text-orange-400 hover:bg-orange-500/20 transition-all cursor-pointer"
-                        >
-                          Open in Studio
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <a
+                            href={`/resume/${row.studentId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer inline-flex items-center gap-1.5"
+                            title="View Public Shareable Resume"
+                          >
+                            <i className="fas fa-external-link-alt text-[9px]" />
+                            <span className="hidden sm:inline">Public</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStudentId(row.studentId);
+                              setActiveTab("STUDIO");
+                            }}
+                            className="rounded-lg bg-white/5 px-2.5 py-1 font-semibold text-orange-400 hover:bg-orange-500/20 transition-all cursor-pointer"
+                          >
+                            Open in Studio
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -271,16 +271,75 @@ export async function updateLandingContentAction(formData: FormData): Promise<{ 
     if (!id) return { error: "Content record not found." };
     const published = formData.get("isPublished") === "on";
     if (kind === "gallery") {
-      await db.update(galleryItems).set({ title: text("title"), caption: text("caption"), imageUrl: text("imageUrl"), imageAlt: text("imageAlt") || text("title"), isPublished: published }).where(eq(galleryItems.id, id));
+      await db.update(galleryItems).set({
+        title: text("title"),
+        caption: text("caption"),
+        imageUrl: text("imageUrl"),
+        imageAlt: text("imageAlt") || text("title"),
+        displayOrder: Number(formData.get("displayOrder") || 0),
+        isPublished: published,
+      }).where(eq(galleryItems.id, id));
     } else if (kind === "leadership") {
-      await db.update(leadershipProfiles).set({ name: text("name"), position: text("position"), imageUrl: text("imageUrl"), imageAlt: text("imageAlt") || text("name"), summary: text("summary"), biography: text("biography").split("\n").filter(Boolean), isPublished: published, updatedAt: new Date() }).where(eq(leadershipProfiles.id, id));
+      await db.update(leadershipProfiles).set({
+        name: text("name"),
+        position: text("position"),
+        imageUrl: text("imageUrl"),
+        imageAlt: text("imageAlt") || text("name"),
+        summary: text("summary"),
+        biography: text("biography").split("\n").filter(Boolean),
+        displayOrder: Number(formData.get("displayOrder") || 0),
+        isPublished: published,
+        updatedAt: new Date(),
+      }).where(eq(leadershipProfiles.id, id));
     } else if (kind === "announcement") {
-      await db.update(announcements).set({ title: text("title"), summary: text("summary"), content: text("content"), imageUrl: text("imageUrl") || null, isPublished: published, publishedAt: published ? new Date() : null }).where(eq(announcements.id, id));
+      await db.update(announcements).set({
+        title: text("title"),
+        summary: text("summary"),
+        content: text("content"),
+        imageUrl: text("imageUrl") || null,
+        isPublished: published,
+        publishedAt: published ? new Date() : null,
+      }).where(eq(announcements.id, id));
     } else return { error: "Unsupported content type." };
     await recordAuditLog({ actorId: actor.id, action: "PUBLIC_CONTENT_UPDATED", entityType: kind, entityId: id, details: { title: text("title") } });
     revalidatePath("/"); revalidatePath("/admin"); revalidatePath("/training"); revalidatePath("/training/preview");
     return { success: true };
   } catch (error) { console.error("[AdminAction] content update failed", error); return { error: "Unable to update this content." }; }
+}
+
+export async function toggleLandingContentPublishAction(
+  kind: string,
+  id: string,
+  isPublished: boolean,
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const actor = await requireSuperAdmin();
+    if (!id) return { error: "Record ID is required." };
+    if (kind === "gallery") {
+      await db.update(galleryItems).set({ isPublished }).where(eq(galleryItems.id, id));
+    } else if (kind === "leadership") {
+      await db.update(leadershipProfiles).set({ isPublished, updatedAt: new Date() }).where(eq(leadershipProfiles.id, id));
+    } else if (kind === "announcement") {
+      await db.update(announcements).set({
+        isPublished,
+        publishedAt: isPublished ? new Date() : null,
+      }).where(eq(announcements.id, id));
+    } else {
+      return { error: "Unsupported content type." };
+    }
+    await recordAuditLog({
+      actorId: actor.id,
+      action: isPublished ? "PUBLIC_CONTENT_PUBLISHED" : "PUBLIC_CONTENT_UNPUBLISHED",
+      entityType: kind,
+      entityId: id,
+    });
+    revalidatePath("/");
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    console.error("[AdminAction] toggle publish failed", error);
+    return { error: "Unable to update publish status." };
+  }
 }
 
 export async function deleteLandingContentAction(kind: string, id: string): Promise<{ success?: boolean; error?: string }> {

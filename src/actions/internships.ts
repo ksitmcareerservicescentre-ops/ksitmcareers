@@ -53,7 +53,7 @@ export type EnrollmentTableRow = {
   studentDepartment: string | null;
   studentLevel: string | null;
   studentAvatarUrl: string | null;
-  status: "ASSIGNED" | "IN_PROGRESS" | "SUBMITTED" | "APPROVED" | "REVISION_REQUESTED";
+  status: "REQUESTED" | "ASSIGNED" | "IN_PROGRESS" | "SUBMITTED" | "APPROVED" | "REJECTED" | "REVISION_REQUESTED";
   assignedByStaffName: string | null;
   assignmentNote: string | null;
   enrolledAt: Date;
@@ -486,7 +486,7 @@ export async function assignVirtualInternshipAction(input: {
 }
 
 /**
- * Student: Self-enroll / take a published virtual internship
+ * Student: Start / take a virtual internship if assigned or approved
  */
 export async function enrollVirtualInternshipAction(
   internshipId: string,
@@ -510,17 +510,86 @@ export async function enrollVirtualInternshipAction(
       )
       .limit(1);
 
+    if (!existing) {
+      throw new Error(
+        "You can only take part in virtual internships you are assigned to, or where your participation request has been accepted by Career Staff.",
+      );
+    }
+
+    if (existing.status === "REQUESTED") {
+      throw new Error("Your participation request for this virtual internship is pending approval by Career Staff.");
+    }
+
+    if (existing.status === "REJECTED") {
+      throw new Error("Your request to participate in this virtual internship was not approved by Career Staff.");
+    }
+
+    if (existing.status === "ASSIGNED") {
+      await db
+        .update(virtualInternshipEnrollments)
+        .set({
+          status: "IN_PROGRESS",
+          startedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(virtualInternshipEnrollments.id, existing.id));
+    }
+
+    revalidatePath("/dashboard");
+    return { success: true, enrollmentId: existing.id };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to participate in virtual internship.",
+    };
+  }
+}
+
+/**
+ * Student: Request to participate in a virtual internship
+ */
+export async function requestInternshipParticipationAction(
+  internshipId: string,
+  requestNote?: string,
+): Promise<{ success: boolean; enrollmentId?: string; error?: string }> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser || currentUser.role !== "STUDENT" || !currentUser.studentProfile) {
+      throw new Error("Student authentication required to request internship participation.");
+    }
+
+    const studentId = currentUser.studentProfile.id;
+
+    const [existing] = await db
+      .select({ id: virtualInternshipEnrollments.id, status: virtualInternshipEnrollments.status })
+      .from(virtualInternshipEnrollments)
+      .where(
+        and(
+          eq(virtualInternshipEnrollments.internshipId, internshipId),
+          eq(virtualInternshipEnrollments.studentId, studentId),
+        ),
+      )
+      .limit(1);
+
     if (existing) {
-      if (existing.status === "ASSIGNED") {
-        await db
-          .update(virtualInternshipEnrollments)
-          .set({
-            status: "IN_PROGRESS",
-            startedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(virtualInternshipEnrollments.id, existing.id));
+      if (existing.status === "REQUESTED") {
+        return { success: true, enrollmentId: existing.id };
       }
+      if (existing.status === "ASSIGNED" || existing.status === "IN_PROGRESS" || existing.status === "SUBMITTED" || existing.status === "APPROVED") {
+        throw new Error("You are already approved or taking part in this virtual internship.");
+      }
+      // If was previously rejected, re-request
+      await db
+        .update(virtualInternshipEnrollments)
+        .set({
+          status: "REQUESTED",
+          assignmentNote: requestNote?.trim() || "Student re-requested participation.",
+          updatedAt: new Date(),
+        })
+        .where(eq(virtualInternshipEnrollments.id, existing.id));
+
+      revalidatePath("/dashboard");
+      revalidatePath("/admin");
       return { success: true, enrollmentId: existing.id };
     }
 
@@ -529,20 +598,86 @@ export async function enrollVirtualInternshipAction(
       .values({
         internshipId,
         studentId,
-        status: "IN_PROGRESS",
-        startedAt: new Date(),
+        status: "REQUESTED",
+        assignmentNote: requestNote?.trim() || "Student requested to take part in this virtual internship.",
       })
       .returning({ id: virtualInternshipEnrollments.id });
 
+    await recordAuditLog({
+      actorId: currentUser.id,
+      action: "VIRTUAL_INTERNSHIP_REQUEST",
+      entityType: "virtual_internship_enrollments",
+      entityId: inserted.id,
+      details: { internshipId, studentId, note: requestNote },
+    });
+
     revalidatePath("/dashboard");
+    revalidatePath("/admin");
     return { success: true, enrollmentId: inserted.id };
   } catch (err: unknown) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Failed to enroll in virtual internship.",
+      error: err instanceof Error ? err.message : "Failed to submit participation request.",
     };
   }
 }
+
+/**
+ * Super Admin & Staff: Review & Approve or Reject internship participation request
+ */
+export async function reviewInternshipParticipationRequestAction(input: {
+  enrollmentId: string;
+  approve: boolean;
+  staffFeedback?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser || (currentUser.role !== "SUPER_ADMIN" && currentUser.role !== "STAFF")) {
+      throw new Error("Unauthorized to review participation requests.");
+    }
+
+    const [enrollment] = await db
+      .select()
+      .from(virtualInternshipEnrollments)
+      .where(eq(virtualInternshipEnrollments.id, input.enrollmentId))
+      .limit(1);
+
+    if (!enrollment) throw new Error("Enrollment request not found.");
+
+    const newStatus = input.approve ? "ASSIGNED" : "REJECTED";
+
+    await db
+      .update(virtualInternshipEnrollments)
+      .set({
+        status: newStatus,
+        assignedByUserId: currentUser.id,
+        reviewedByUserId: currentUser.id,
+        reviewedAt: new Date(),
+        staffFeedback: input.staffFeedback?.trim() || (input.approve ? "Participation request approved by Career Services." : "Participation request declined."),
+        updatedAt: new Date(),
+      })
+      .where(eq(virtualInternshipEnrollments.id, input.enrollmentId));
+
+    await recordAuditLog({
+      actorId: currentUser.id,
+      action: input.approve ? "VIRTUAL_INTERNSHIP_REQUEST_APPROVED" : "VIRTUAL_INTERNSHIP_REQUEST_REJECTED",
+      entityType: "virtual_internship_enrollments",
+      entityId: input.enrollmentId,
+      details: { approve: input.approve, feedback: input.staffFeedback },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/admin");
+    revalidatePath("/staff");
+    return { success: true };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to review request.",
+    };
+  }
+}
+
 
 /**
  * Student: Submit polymorphic outcome for an internship card

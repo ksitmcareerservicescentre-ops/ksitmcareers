@@ -11,6 +11,7 @@ import {
   listInternshipEnrollmentsAction,
   submitInternshipOutcomeAction,
   reviewInternshipSubmissionAction,
+  reviewInternshipParticipationRequestAction,
   getCumulativeStudentOutcomesAction,
   type VirtualInternshipItem,
   type EnrollmentTableRow,
@@ -195,6 +196,20 @@ export function VirtualInternshipWorkspace() {
         alert(res.error || "Failed to delete internship.");
       }
     }
+  };
+
+  const handleReviewParticipationRequest = async (enrollmentId: string, approved: boolean) => {
+    startTransition(async () => {
+      const res = await reviewInternshipParticipationRequestAction({
+        enrollmentId,
+        approve: approved,
+      });
+      if (res.success) {
+        await loadEnrollments();
+      } else {
+        alert(res.error || "Failed to update participation request.");
+      }
+    });
   };
 
   // Cumulative Metrics
@@ -658,6 +673,10 @@ export function VirtualInternshipWorkspace() {
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                             row.status === "APPROVED"
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                              : row.status === "REQUESTED"
+                              ? "bg-purple-500/15 text-purple-300 border border-purple-500/30 animate-pulse"
+                              : row.status === "REJECTED"
+                              ? "bg-rose-500/10 text-rose-400 border border-rose-500/30"
                               : row.status === "SUBMITTED"
                               ? "bg-amber-500/10 text-amber-400 border border-amber-500/30 animate-pulse"
                               : row.status === "IN_PROGRESS"
@@ -668,7 +687,11 @@ export function VirtualInternshipWorkspace() {
                           }`}
                         >
                           <i className="fas fa-circle text-[6px]" />
-                          {row.status === "SUBMITTED" ? "Submitted (Pending Review)" : row.status}
+                          {row.status === "REQUESTED"
+                            ? "Requested (Pending Approval)"
+                            : row.status === "SUBMITTED"
+                            ? "Submitted (Pending Review)"
+                            : row.status}
                         </span>
                       </td>
 
@@ -742,27 +765,52 @@ export function VirtualInternshipWorkspace() {
 
                       {/* Actions */}
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Student Outcome Simulation Test Button */}
-                          <button
-                            type="button"
-                            onClick={() => setTestOutcomeItem(row)}
-                            className="rounded-lg bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-semibold text-gray-300 hover:bg-white/10 transition-colors cursor-pointer"
-                            title="Simulate or attach student outcome"
-                          >
-                            <i className="fas fa-paperclip mr-1" />
-                            Attach Outcome
-                          </button>
+                        {row.status === "REQUESTED" ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleReviewParticipationRequest(row.id, true)}
+                              disabled={isPending}
+                              className="rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-bold text-emerald-400 hover:bg-emerald-500/25 transition-colors cursor-pointer"
+                              title="Approve student to take part in this virtual internship"
+                            >
+                              <i className="fas fa-check mr-1" />
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleReviewParticipationRequest(row.id, false)}
+                              disabled={isPending}
+                              className="rounded-lg bg-red-500/15 border border-red-500/30 px-2.5 py-1 text-[11px] font-bold text-red-400 hover:bg-red-500/25 transition-colors cursor-pointer"
+                              title="Decline student request"
+                            >
+                              <i className="fas fa-xmark mr-1" />
+                              Decline
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2">
+                            {/* Student Outcome Simulation Test Button */}
+                            <button
+                              type="button"
+                              onClick={() => setTestOutcomeItem(row)}
+                              className="rounded-lg bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-semibold text-gray-300 hover:bg-white/10 transition-colors cursor-pointer"
+                              title="Simulate or attach student outcome"
+                            >
+                              <i className="fas fa-paperclip mr-1" />
+                              Attach Outcome
+                            </button>
 
-                          {/* Staff Review Button */}
-                          <button
-                            type="button"
-                            onClick={() => setReviewItem(row)}
-                            className="rounded-lg bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 text-[11px] font-bold text-orange-400 hover:bg-orange-500/20 transition-colors cursor-pointer"
-                          >
-                            Review & Grade
-                          </button>
-                        </div>
+                            {/* Staff Review Button */}
+                            <button
+                              type="button"
+                              onClick={() => setReviewItem(row)}
+                              className="rounded-lg bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 text-[11px] font-bold text-orange-400 hover:bg-orange-500/20 transition-colors cursor-pointer"
+                            >
+                              Review & Grade
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

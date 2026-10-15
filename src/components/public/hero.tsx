@@ -2,9 +2,42 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import type { HeroSlideRecord } from "@/db/schema";
 
-export function Hero() {
+const DEFAULT_SLIDES = [
+  {
+    id: "default-1",
+    imageUrl:
+      "https://res.cloudinary.com/djkudkxmx/image/upload/v1790626126/screen_2_fcf81s.jpg",
+    displayOrder: 1,
+    isActive: true,
+  },
+  {
+    id: "default-2",
+    imageUrl:
+      "https://res.cloudinary.com/djkudkxmx/image/upload/v1790626122/screen_1_dzwyjz.jpg",
+    displayOrder: 2,
+    isActive: true,
+  },
+  {
+    id: "default-3",
+    imageUrl:
+      "https://res.cloudinary.com/djkudkxmx/image/upload/v1790626121/screen_3_gkjtrh.jpg",
+    displayOrder: 3,
+    isActive: true,
+  },
+];
+
+export function Hero({ slides }: { slides?: HeroSlideRecord[] }) {
   const [isPaused, setIsPaused] = useState(false);
+
+  const activeSlides =
+    slides && slides.length > 0 ? slides : (DEFAULT_SLIDES as unknown as HeroSlideRecord[]);
+  const interval = 6;
+  const totalDuration = Math.max(activeSlides.length * interval, 12);
+
+  const ctaLabel = "Start Your Journey Now";
+  const ctaHref = "/register";
 
   return (
     <section
@@ -17,44 +50,41 @@ export function Hero() {
           className={`hero-slideshow ${isPaused ? "is-paused" : ""}`}
           aria-hidden="true"
         >
-          <div
-            className="hero-slide hero-slide-0"
-            style={{
-              backgroundImage:
-                "url('https://res.cloudinary.com/djkudkxmx/image/upload/v1790626126/screen_2_fcf81s.jpg')",
-            }}
-          ></div>
-          <div
-            className="hero-slide hero-slide-1"
-            style={{
-              backgroundImage:
-                "url('https://res.cloudinary.com/djkudkxmx/image/upload/v1790626122/screen_1_dzwyjz.jpg')",
-            }}
-          ></div>
-          <div
-            className="hero-slide hero-slide-2"
-            style={{
-              backgroundImage:
-                "url('https://res.cloudinary.com/djkudkxmx/image/upload/v1790626121/screen_3_gkjtrh.jpg')",
-            }}
-          ></div>
+          {activeSlides.map((slide, idx) => (
+            <div
+              key={slide.id || idx}
+              className={`hero-slide hero-slide-${idx}`}
+              style={{
+                backgroundImage: `url('${slide.imageUrl}')`,
+                animation:
+                  activeSlides.length > 1
+                    ? `heroCycle ${totalDuration}s infinite`
+                    : "none",
+                animationDelay:
+                  activeSlides.length > 1 ? `${idx * interval}s` : "0s",
+                opacity: activeSlides.length === 1 ? 1 : undefined,
+              }}
+            />
+          ))}
         </div>
         <div id="particles" className="absolute inset-0"></div>
       </div>
 
       {/* Accessible animation pause control */}
-      <button
-        type="button"
-        onClick={() => setIsPaused(!isPaused)}
-        aria-label={isPaused ? "Resume animation" : "Pause animation"}
-        className="hero-pause-toggle absolute bottom-6 left-6 z-20 flex items-center gap-2 rounded-full border border-white/15 bg-black/50 px-3 py-1.5 text-xs text-white/80 backdrop-blur-md transition-colors hover:border-[#FF7F24]/60 hover:text-white"
-      >
-        <i
-          className={`fas fa-${isPaused ? "play" : "pause"} text-[10px]`}
-          aria-hidden="true"
-        ></i>
-        <span>{isPaused ? "Resume animation" : "Pause animation"}</span>
-      </button>
+      {activeSlides.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setIsPaused(!isPaused)}
+          aria-label={isPaused ? "Resume animation" : "Pause animation"}
+          className="hero-pause-toggle absolute bottom-6 left-6 z-20 flex items-center gap-2 rounded-full border border-white/15 bg-black/50 px-3 py-1.5 text-xs text-white/80 backdrop-blur-md transition-colors hover:border-[#FF7F24]/60 hover:text-white"
+        >
+          <i
+            className={`fas fa-${isPaused ? "play" : "pause"} text-[10px]`}
+            aria-hidden="true"
+          ></i>
+          <span>{isPaused ? "Resume animation" : "Pause animation"}</span>
+        </button>
+      )}
 
       {/* Centered Animated KSITM Identity */}
       <div className="hero-content-wrap">
@@ -95,10 +125,10 @@ export function Hero() {
           </div>
 
           <a
-            href="/register"
+            href={ctaHref}
             className="hero-cta inline-flex items-center gap-3 mt-12 px-8 py-4 rounded-full bg-[#FF7F24] text-[#0A0A1A] font-extrabold shadow-lg shadow-orange-600/25 hover:bg-[#40297B] hover:text-white hover:-translate-y-1 transition-all"
           >
-            Start Your Journey Now{" "}
+            {ctaLabel}{" "}
             <i className="fas fa-arrow-right" aria-hidden="true"></i>
           </a>
         </div>

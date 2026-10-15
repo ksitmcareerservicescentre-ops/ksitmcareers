@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   enrollVirtualInternshipAction,
+  requestInternshipParticipationAction,
   submitInternshipOutcomeAction,
   type VirtualInternshipItem,
   type EnrollmentTableRow,
@@ -74,13 +75,13 @@ export function StudentInternshipsView({
     return true;
   });
 
-  const handleEnroll = (internship: VirtualInternshipItem) => {
+  const handleRequestParticipation = (internship: VirtualInternshipItem, note?: string) => {
     startTransition(async () => {
       try {
-        const res = await enrollVirtualInternshipAction(internship.id);
+        const res = await requestInternshipParticipationAction(internship.id, note);
         if (!res.success) throw new Error(res.error);
 
-        const newEnrollment: EnrollmentTableRow = {
+        const requestedEnrollment: EnrollmentTableRow = {
           id: res.enrollmentId || String(Date.now()),
           internshipId: internship.id,
           internshipTitle: internship.title,
@@ -95,11 +96,11 @@ export function StudentInternshipsView({
           studentDepartment: department,
           studentLevel: "ND/HND",
           studentAvatarUrl: null,
-          status: "IN_PROGRESS",
+          status: "REQUESTED",
           assignedByStaffName: null,
-          assignmentNote: null,
+          assignmentNote: note || "Student requested participation",
           enrolledAt: new Date(),
-          startedAt: new Date(),
+          startedAt: null,
           submittedAt: null,
           reviewedAt: null,
           reviewedByStaffName: null,
@@ -114,18 +115,40 @@ export function StudentInternshipsView({
           outcomeMetadata: null,
         };
 
-        setEnrollments((prev) => [newEnrollment, ...prev]);
-        setPortfolio((prev) => ({
-          ...prev,
-          totalEnrolled: prev.totalEnrolled + 1,
-          enrollments: [newEnrollment, ...prev.enrollments],
-        }));
+        setEnrollments((prev) => [
+          requestedEnrollment,
+          ...prev.filter((e) => e.internshipId !== internship.id),
+        ]);
 
-        setNotice(`Successfully enrolled in "${internship.title}"! You can now start working on the deliverables.`);
+        setNotice(
+          `Request to participate in "${internship.title}" submitted! Your assigned Career Staff or Super Admin will review and approve it.`,
+        );
+        setTimeout(() => setNotice(null), 6000);
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : "Failed to submit participation request.");
+      }
+    });
+  };
+
+  const handleEnroll = (internship: VirtualInternshipItem) => {
+    startTransition(async () => {
+      try {
+        const res = await enrollVirtualInternshipAction(internship.id);
+        if (!res.success) throw new Error(res.error);
+
+        setEnrollments((prev) =>
+          prev.map((e) =>
+            e.internshipId === internship.id
+              ? { ...e, status: "IN_PROGRESS", startedAt: new Date() }
+              : e,
+          ),
+        );
+
+        setNotice(`Successfully started "${internship.title}"! You can now complete the project deliverables.`);
         setActiveTab("MY_INTERNSHIPS");
         setTimeout(() => setNotice(null), 5000);
       } catch (err: unknown) {
-        alert(err instanceof Error ? err.message : "Failed to enroll in internship.");
+        alert(err instanceof Error ? err.message : "Failed to start internship.");
       }
     });
   };
@@ -617,37 +640,62 @@ export function StudentInternshipsView({
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="border-t border-white/10 p-4 bg-white/[0.01] flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewInternship(item)}
-                      className="text-xs font-semibold text-gray-400 hover:text-white transition-colors cursor-pointer"
-                    >
-                      <i className="fas fa-info-circle mr-1" /> Details
-                    </button>
+                    {/* Actions */}
+                    <div className="border-t border-white/10 p-4 bg-white/[0.01] flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewInternship(item)}
+                        className="text-xs font-semibold text-gray-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <i className="fas fa-info-circle mr-1" /> Details
+                      </button>
 
-                    {isEnrolled ? (
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("MY_INTERNSHIPS")}
-                        className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-400 hover:bg-emerald-500 hover:text-black transition-all flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <i className="fas fa-check" />
-                        <span>Enrolled</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => handleEnroll(item)}
-                        className={orangeButton}
-                      >
-                        <i className="fas fa-play" />
-                        <span>Take Internship</span>
-                      </button>
-                    )}
-                  </div>
+                      {enrollment?.status === "REQUESTED" ? (
+                        <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                          <i className="fas fa-hourglass-half" />
+                          <span>Request Pending</span>
+                        </span>
+                      ) : enrollment?.status === "REJECTED" ? (
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleRequestParticipation(item)}
+                          className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-300 hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <i className="fas fa-redo" />
+                          <span>Request Again</span>
+                        </button>
+                      ) : enrollment?.status === "ASSIGNED" ? (
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleEnroll(item)}
+                          className={orangeButton}
+                        >
+                          <i className="fas fa-play" />
+                          <span>Start Deliverables</span>
+                        </button>
+                      ) : enrollment ? (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("MY_INTERNSHIPS")}
+                          className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-400 hover:bg-emerald-500 hover:text-black transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <i className="fas fa-check" />
+                          <span>Active Project</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleRequestParticipation(item)}
+                          className={orangeButton}
+                        >
+                          <i className="fas fa-hand-paper" />
+                          <span>Request to Take Part</span>
+                        </button>
+                      )}
+                    </div>
                 </div>
               );
             })}
@@ -797,11 +845,15 @@ export function StudentInternshipsView({
       {previewInternship && (
         <InternshipDetailsModal
           internship={previewInternship}
-          isEnrolled={Boolean(enrolledMap.get(previewInternship.id))}
+          enrollment={enrolledMap.get(previewInternship.id)}
           onClose={() => setPreviewInternship(null)}
           onEnroll={() => {
             setPreviewInternship(null);
             handleEnroll(previewInternship);
+          }}
+          onRequest={() => {
+            setPreviewInternship(null);
+            handleRequestParticipation(previewInternship);
           }}
         />
       )}
@@ -811,6 +863,18 @@ export function StudentInternshipsView({
 
 function StatusBadge({ status }: { status: EnrollmentTableRow["status"] }) {
   switch (status) {
+    case "REQUESTED":
+      return (
+        <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-300 uppercase tracking-wider">
+          Request Pending
+        </span>
+      );
+    case "REJECTED":
+      return (
+        <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-bold text-rose-300 uppercase tracking-wider">
+          Declined
+        </span>
+      );
     case "APPROVED":
       return (
         <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
@@ -1091,14 +1155,16 @@ function OutcomeAttachmentModal({
  */
 function InternshipDetailsModal({
   internship,
-  isEnrolled,
+  enrollment,
   onClose,
   onEnroll,
+  onRequest,
 }: {
   internship: VirtualInternshipItem;
-  isEnrolled: boolean;
+  enrollment?: EnrollmentTableRow | null;
   onClose: () => void;
   onEnroll: () => void;
+  onRequest: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm overflow-y-auto">
@@ -1205,16 +1271,39 @@ function InternshipDetailsModal({
           >
             Close
           </button>
-          {!isEnrolled && (
+          {enrollment?.status === "ASSIGNED" ? (
             <button
               type="button"
               onClick={onEnroll}
               className={orangeButton}
             >
               <i className="fas fa-play" />
-              <span>Enroll & Take Internship</span>
+              <span>Start Deliverables</span>
             </button>
-          )}
+          ) : enrollment?.status === "REQUESTED" ? (
+            <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-bold text-amber-300 flex items-center gap-1.5">
+              <i className="fas fa-hourglass-half" />
+              <span>Request Pending Review</span>
+            </span>
+          ) : enrollment?.status === "REJECTED" ? (
+            <button
+              type="button"
+              onClick={onRequest}
+              className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-bold text-rose-300 hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <i className="fas fa-redo" />
+              <span>Request Again</span>
+            </button>
+          ) : !enrollment ? (
+            <button
+              type="button"
+              onClick={onRequest}
+              className={orangeButton}
+            >
+              <i className="fas fa-hand-paper" />
+              <span>Request to Take Part</span>
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

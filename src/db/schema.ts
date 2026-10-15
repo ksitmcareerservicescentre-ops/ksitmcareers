@@ -879,6 +879,90 @@ export const socialLinks = pgTable("social_links", {
     .notNull(),
 });
 
+export const heroSlides = pgTable(
+  "hero_slides",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title"),
+    subtitle: text("subtitle"),
+    imageUrl: text("image_url").notNull(),
+    imageAlt: text("image_alt").default("KSITM Hero Slide"),
+    ctaText: text("cta_text").default("Get Started / Enrol Now"),
+    ctaLink: text("cta_link").default("/register"),
+    displayOrder: integer("display_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("hero_slides_active_idx").on(table.isActive),
+    index("hero_slides_order_idx").on(table.displayOrder),
+  ],
+);
+
+export const footerLinks = pgTable(
+  "footer_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    category: text("category", { enum: ["SERVICES", "RESOURCES"] }).notNull(),
+    label: text("label").notNull(),
+    url: text("url").notNull(),
+    isExternal: boolean("is_external").notNull().default(false),
+    displayOrder: integer("display_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("footer_links_category_idx").on(table.category),
+    index("footer_links_active_idx").on(table.isActive),
+    index("footer_links_order_idx").on(table.displayOrder),
+  ],
+);
+
+export const siteContactInfo = pgTable(
+  "site_contact_info",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    institutionName: text("institution_name")
+      .notNull()
+      .default("Katsina State Institute of Technology and Management"),
+    centreName: text("centre_name")
+      .notNull()
+      .default("Directorate of Career Services & Linkages"),
+    address: text("address")
+      .notNull()
+      .default(
+        "Room 1, Ground Floor, Block A, Katsina State Institute of Technology and Management, P.M.B. 2101, Abba Musa Rimi Way, Katsina, Katsina State",
+      ),
+    email: text("email").notNull().default("contact@ksitmcareers.edu.ng"),
+    phone: text("phone").notNull().default("09062125845"),
+    phoneContact: text("phone_contact").notNull().default("Nura Sadiq"),
+    websiteUrl: text("website_url")
+      .notNull()
+      .default("https://www.ksitmcareers.edu.ng"),
+    copyrightText: text("copyright_text").default(
+      "© 2026 KSITM Careers. All rights reserved. Built for student success.",
+    ),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+);
+
+export type HeroSlideRecord = typeof heroSlides.$inferSelect;
+export type FooterLinkRecord = typeof footerLinks.$inferSelect;
+export type SiteContactInfoRecord = typeof siteContactInfo.$inferSelect;
+export type SocialLinkRecord = typeof socialLinks.$inferSelect;
+
 // ============================================================
 // 10. SYSTEM GOVERNANCE & AUDIT TRAIL
 // ============================================================
@@ -1075,7 +1159,7 @@ export const virtualInternshipEnrollments = pgTable(
     }),
     assignmentNote: text("assignment_note"),
     status: text("status", {
-      enum: ["ASSIGNED", "IN_PROGRESS", "SUBMITTED", "APPROVED", "REVISION_REQUESTED"],
+      enum: ["REQUESTED", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "APPROVED", "REJECTED", "REVISION_REQUESTED"],
     })
       .notNull()
       .default("ASSIGNED"),
@@ -1239,7 +1323,7 @@ export const jobRecommendations = pgTable(
     }),
     supervisorName: text("supervisor_name"),
     status: text("status", {
-      enum: ["RECOMMENDED", "APPLIED", "IN_PROGRESS", "COMPLETED", "TERMINATED"],
+      enum: ["REQUESTED", "RECOMMENDED", "APPLIED", "IN_PROGRESS", "COMPLETED", "REJECTED", "TERMINATED"],
     })
       .notNull()
       .default("RECOMMENDED"),
@@ -1323,5 +1407,105 @@ export const launchEventVideos = pgTable(
 
 export type TestimonialRecord = typeof testimonials.$inferSelect;
 export type LaunchEventVideoRecord = typeof launchEventVideos.$inferSelect;
+
+// ============================================================
+// 18. CAREER FAIRS & CAMPUS RECRUITMENT EXPOS
+// ============================================================
+
+export const careerFairs = pgTable(
+  "career_fairs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    slug: text("slug").notNull().unique(),
+    theme: text("theme"),
+    description: text("description").notNull(),
+    venue: text("venue")
+      .notNull()
+      .default("KSITM Main Convocation Arena & Virtual Livestream"),
+    startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+    endDate: timestamp("end_date", { withTimezone: true }).notNull(),
+    registrationDeadline: timestamp("registration_deadline", {
+      withTimezone: true,
+    }),
+    bannerUrl: text("banner_url"),
+    targetAudience: text("target_audience")
+      .notNull()
+      .default("All Students & Alumni"),
+    status: text("status", {
+      enum: ["UPCOMING", "ONGOING", "CONCLUDED", "CANCELLED"],
+    })
+      .notNull()
+      .default("UPCOMING"),
+    isPublished: boolean("is_published").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("career_fairs_slug_idx").on(table.slug),
+    index("career_fairs_status_idx").on(table.status),
+    index("career_fairs_published_idx").on(table.isPublished),
+  ],
+);
+
+export const careerFairBooths = pgTable(
+  "career_fair_booths",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fairId: uuid("fair_id")
+      .notNull()
+      .references(() => careerFairs.id, { onDelete: "cascade" }),
+    employerId: uuid("employer_id").references(() => partnerEmployers.id, {
+      onDelete: "set null",
+    }),
+    companyName: text("company_name").notNull(),
+    boothNumber: text("booth_number").notNull().default("Booth 1"),
+    industry: text("industry").notNull().default("Technology"),
+    websiteUrl: text("website_url"),
+    targetRoles: text("target_roles"),
+    openPositionsCount: integer("open_positions_count").notNull().default(1),
+    virtualMeetingUrl: text("virtual_meeting_url"),
+    displayOrder: integer("display_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("career_fair_booths_fair_idx").on(table.fairId),
+    index("career_fair_booths_emp_idx").on(table.employerId),
+  ],
+);
+
+export const careerFairRegistrations = pgTable(
+  "career_fair_registrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fairId: uuid("fair_id")
+      .notNull()
+      .references(() => careerFairs.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => studentProfiles.id, { onDelete: "cascade" }),
+    registrationNumber: text("registration_number").notNull(),
+    registeredAt: timestamp("registered_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    attended: boolean("attended").notNull().default(false),
+    notes: text("notes"),
+  },
+  (table) => [
+    unique("student_fair_unique").on(table.fairId, table.studentId),
+    index("career_fair_reg_fair_idx").on(table.fairId),
+    index("career_fair_reg_student_idx").on(table.studentId),
+  ],
+);
+
+export type CareerFairRecord = typeof careerFairs.$inferSelect;
+export type CareerFairBoothRecord = typeof careerFairBooths.$inferSelect;
+export type CareerFairRegistrationRecord = typeof careerFairRegistrations.$inferSelect;
 
 

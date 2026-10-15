@@ -7,6 +7,7 @@ import {
   updateRecommendationReasonAction,
   updateJobSupervisionStatusAction,
   recommendJobToStudentAction,
+  reviewJobParticipationRequestAction,
   listPartnerEmployersAction,
   onboardPartnerEmployerAction,
   updatePartnerEmployerAction,
@@ -91,6 +92,21 @@ export function EmployerEngagementWorkspace() {
         console.error("Failed to load engagement data:", err);
         setLoading(false);
       });
+  };
+
+  const handleReviewJobRequest = (recommendationId: string, approved: boolean) => {
+    startTransition(async () => {
+      const res = await reviewJobParticipationRequestAction({
+        recommendationId,
+        approve: approved,
+      });
+      if (res.success) {
+        setNotice(approved ? "Student request approved! Opportunity assigned." : "Student request declined.");
+        loadData();
+      } else {
+        alert(res.error || "Failed to update request.");
+      }
+    });
   };
 
   useEffect(() => {
@@ -439,15 +455,40 @@ export function EmployerEngagementWorkspace() {
                         {/* ACTIONS */}
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSupervisingRec(row)}
-                              className="rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 py-1.5 text-xs font-bold text-orange-300 hover:bg-orange-500 hover:text-black transition-all cursor-pointer flex items-center gap-1"
-                              title="Supervise and update status"
-                            >
-                              <i className="fas fa-tasks text-[10px]" />
-                              <span>Supervise Status</span>
-                            </button>
+                            {row.status === "REQUESTED" ? (
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleReviewJobRequest(row.id, true)}
+                                  disabled={isPending}
+                                  className="rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 text-xs font-bold text-emerald-400 hover:bg-emerald-500/25 transition-all cursor-pointer"
+                                  title="Approve student request"
+                                >
+                                  <i className="fas fa-check mr-1" />
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleReviewJobRequest(row.id, false)}
+                                  disabled={isPending}
+                                  className="rounded-lg bg-red-500/15 border border-red-500/30 px-2.5 py-1 text-xs font-bold text-red-400 hover:bg-red-500/25 transition-all cursor-pointer"
+                                  title="Decline student request"
+                                >
+                                  <i className="fas fa-xmark mr-1" />
+                                  Decline
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setSupervisingRec(row)}
+                                className="rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 py-1.5 text-xs font-bold text-orange-300 hover:bg-orange-500 hover:text-black transition-all cursor-pointer flex items-center gap-1"
+                                title="Supervise and update status"
+                              >
+                                <i className="fas fa-tasks text-[10px]" />
+                                <span>Supervise Status</span>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -946,6 +987,18 @@ function SupervisionStatusBadge({ status }: { status: JobRecommendationRow["stat
       return (
         <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-bold text-blue-300 uppercase tracking-wider flex items-center gap-1 w-fit">
           <i className="fas fa-paper-plane text-[8px]" /> Applied
+        </span>
+      );
+    case "REQUESTED":
+      return (
+        <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-2.5 py-0.5 text-[10px] font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1 w-fit animate-pulse">
+          <i className="fas fa-hand text-[8px]" /> Requested
+        </span>
+      );
+    case "REJECTED":
+      return (
+        <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-0.5 text-[10px] font-bold text-red-300 uppercase tracking-wider flex items-center gap-1 w-fit">
+          <i className="fas fa-times-circle text-[8px]" /> Rejected
         </span>
       );
     case "RECOMMENDED":

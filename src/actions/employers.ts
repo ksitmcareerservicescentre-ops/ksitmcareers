@@ -66,7 +66,7 @@ export type JobRecommendationRow = {
   recommendationReason: string;
   supervisorUserId: string | null;
   supervisorName: string | null;
-  status: "RECOMMENDED" | "APPLIED" | "IN_PROGRESS" | "COMPLETED" | "TERMINATED";
+  status: "REQUESTED" | "RECOMMENDED" | "APPLIED" | "IN_PROGRESS" | "COMPLETED" | "REJECTED" | "TERMINATED";
   supervisionNotes: string | null;
   statusUpdateReason: string | null;
   employerFeedback?: string | null;
@@ -100,7 +100,7 @@ export type EmployerRecommendationItem = {
   recommendationReason: string;
   supervisorUserId: string | null;
   supervisorName: string | null;
-  status: "RECOMMENDED" | "APPLIED" | "IN_PROGRESS" | "COMPLETED" | "TERMINATED";
+  status: "RECOMMENDED" | "REQUESTED" | "REJECTED" | "APPLIED" | "IN_PROGRESS" | "COMPLETED" | "TERMINATED";
   supervisionNotes: string | null;
   employerFeedback: string | null;
   employerStatus: string | null;
@@ -701,6 +701,172 @@ export async function recommendJobToStudentAction(input: {
 }
 
 /**
+ * Student: Request to participate in / apply for a job posting
+ */
+export async function requestJobParticipationAction(
+  jobId: string,
+  requestNote?: string,
+): Promise<{ success: boolean; recommendationId?: string; error?: string }> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser || currentUser.role !== "STUDENT" || !currentUser.studentProfile) {
+      throw new Error("Student authentication required to request job participation.");
+    }
+
+    const studentId = currentUser.studentProfile.id;
+
+    // Check if job exists
+    const [job] = await db
+      .select({ id: jobPostings.id, title: jobPostings.title, companyName: jobPostings.companyName })
+      .from(jobPostings)
+      .where(eq(jobPostings.id, jobId))
+      .limit(1);
+
+    if (!job) throw new Error("Job posting not found.");
+
+    const [existing] = await db
+      .select({ id: jobRecommendations.id, status: jobRecommendations.status })
+      .from(jobRecommendations)
+      .where(
+        and(
+          eq(jobRecommendations.jobId, jobId),
+          eq(jobRecommendations.studentId, studentId),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      if (existing.status === "REQUESTED") {
+        return { success: true, recommendationId: existing.id };
+      }
+      if (existing.status === "RECOMMENDED" || existing.status === "APPLIED" || existing.status === "IN_PROGRESS" || existing.status === "COMPLETED") {
+        throw new Error("You are already approved or participating in this opportunity.");
+      }
+      // If was previously rejected, re-request
+      await db
+        .update(jobRecommendations)
+        .set({
+          status: "REQUESTED",
+          recommendationReason: requestNote?.trim() || "Student re-requested participation for this position.",
+          updatedAt: new Date(),
+        })
+        .where(eq(jobRecommendations.id, existing.id));
+
+      revalidatePath("/dashboard");
+      revalidatePath("/admin");
+      return { success: true, recommendationId: existing.id };
+    }
+
+    const [inserted] = await db
+      .insert(jobRecommendations)
+      .values({
+        jobId,
+        studentId,
+        status: "REQUESTED",
+        recommenderName: "Student Request",
+        recommendationReason: requestNote?.trim() || "Student requested permission to participate in this opportunity.",
+        supervisionNotes: "Pending review by assigned Career Staff or Super Admin.",
+      })
+      .returning({ id: jobRecommendations.id });
+
+    await recordAuditLog({
+      actorId: currentUser.id,
+      action: "JOB_PARTICIPATION_REQUEST",
+      entityType: "job_recommendations",
+      entityId: inserted.id,
+      details: { jobId, jobTitle: job.title, studentId, note: requestNote },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/admin");
+    return { success: true, recommendationId: inserted.id };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to submit participation request.",
+    };
+  }
+}
+
+/**
+ * Super Admin & Staff: Review & Approve or Reject job participation request
+ */
+export async function reviewJobParticipationRequestAction(input: {
+  recommendationId: string;
+  approve: boolean;
+  notes?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser || (currentUser.role !== "SUPER_ADMIN" && currentUser.role !== "STAFF")) {
+      throw new Error("Unauthorized to review job participation requests.");
+    }
+
+    const [rec] = await db
+      .select()
+      .from(jobRecommendations)
+      .where(eq(jobRecommendations.id, input.recommendationId))
+      .limit(1);
+
+    if (!rec) throw new Error("Participation request not found.");
+
+    let staffName = "Career Services Staff";
+    let staffDesignation = "Advisory Staff";
+    const [staff] = await db
+      .select({ fullName: staffProfiles.fullName, designation: staffProfiles.designation })
+      .from(staffProfiles)
+      .where(eq(staffProfiles.userId, currentUser.id))
+      .limit(1);
+
+    if (staff) {
+      staffName = staff.fullName;
+      staffDesignation = staff.designation || "Career Staff";
+    } else if (currentUser.role === "SUPER_ADMIN") {
+      staffName = "Super Administrator";
+      staffDesignation = "Central Career Admin";
+    }
+
+    const newStatus = input.approve ? "RECOMMENDED" : "REJECTED";
+
+    await db
+      .update(jobRecommendations)
+      .set({
+        status: newStatus,
+        recommendedByUserId: currentUser.id,
+        recommenderName: staffName,
+        recommenderDesignation: staffDesignation,
+        supervisorUserId: currentUser.id,
+        supervisorName: staffName,
+        statusUpdateReason: input.notes?.trim() || (input.approve ? "Participation request approved by Career Services." : "Participation request declined."),
+        supervisionNotes: input.approve
+          ? `Approved by ${staffName} on ${new Date().toLocaleDateString()}. Student authorized to apply and take part.`
+          : `Declined by ${staffName} on ${new Date().toLocaleDateString()}.`,
+        updatedAt: new Date(),
+      })
+      .where(eq(jobRecommendations.id, input.recommendationId));
+
+    await recordAuditLog({
+      actorId: currentUser.id,
+      action: input.approve ? "JOB_REQUEST_APPROVED" : "JOB_REQUEST_REJECTED",
+      entityType: "job_recommendations",
+      entityId: input.recommendationId,
+      details: { approve: input.approve, notes: input.notes },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/admin");
+    revalidatePath("/staff");
+    return { success: true };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to review job request.",
+    };
+  }
+}
+
+
+/**
  * Career Staff: Update recommendation rationale ("why he is making the recommendation")
  */
 export async function updateRecommendationReasonAction(
@@ -742,7 +908,7 @@ export async function updateRecommendationReasonAction(
 export async function updateJobSupervisionStatusAction(
   recommendationId: string,
   input: {
-    status: "RECOMMENDED" | "APPLIED" | "IN_PROGRESS" | "COMPLETED" | "TERMINATED";
+    status: "RECOMMENDED" | "REQUESTED" | "REJECTED" | "APPLIED" | "IN_PROGRESS" | "COMPLETED" | "TERMINATED";
     supervisionNotes?: string;
     statusUpdateReason?: string;
     startDate?: Date;

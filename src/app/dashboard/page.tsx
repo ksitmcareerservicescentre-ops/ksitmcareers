@@ -13,6 +13,7 @@ import {
   assessmentAttempts,
   virtualInternshipEnrollments,
   jobRecommendations,
+  careerFairs,
 } from "@/db/schema";
 import { getCurrentUser, ensureStudentProfileForUser } from "@/lib/auth/session";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -117,6 +118,11 @@ export default async function StudentDashboardPage() {
       )
       .where(eq(studentServiceEntitlements.studentId, student.id))
       .orderBy(careerServices.displayOrder);
+
+    // Remove Career Mentorship from Student Dashboard
+    entitlements = entitlements.filter(
+      (e) => e.slug !== "mentorship" && !e.title.toLowerCase().includes("mentor"),
+    );
   } catch (err) {
     console.error("[Dashboard] Error fetching entitlements:", err);
   }
@@ -247,12 +253,23 @@ export default async function StudentDashboardPage() {
     console.error("[Dashboard] Error fetching job recommendations:", err);
   }
 
+  let publishedCareerFairsCount = 0;
+  try {
+    const fairs = await db
+      .select({ id: careerFairs.id })
+      .from(careerFairs)
+      .where(eq(careerFairs.isPublished, true));
+    publishedCareerFairsCount = fairs.length;
+  } catch (err) {
+    console.error("[Dashboard] Error fetching career fairs:", err);
+  }
+
   return (
     <div className="min-h-screen bg-[#0A0A1A] text-white">
       <DashboardHeader student={student} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Link
             href="/dashboard/modules"
             className="group block rounded-2xl border border-orange-400/30 bg-[#101023] p-5 text-white transition-all hover:border-orange-500 hover:bg-[#14142d]"
@@ -351,6 +368,28 @@ export default async function StudentDashboardPage() {
             </div>
             <span className="mt-2 block text-xs text-gray-400">
               Harvard ATS resume builder, live scoring audit, and instant PDF download.
+            </span>
+          </Link>
+
+          <Link
+            href="/dashboard/career-fair"
+            className="group block rounded-2xl border border-rose-400/30 bg-[#101023] p-5 text-white transition-all hover:border-rose-500 hover:bg-[#14142d]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base sm:text-lg font-bold group-hover:text-rose-300 transition-colors">
+                  Career Fair
+                </span>
+                {publishedCareerFairsCount > 0 && (
+                  <span className="rounded-full bg-rose-500/20 border border-rose-500/30 px-2 py-0.5 text-[10px] font-bold text-rose-300">
+                    {publishedCareerFairsCount} Live
+                  </span>
+                )}
+              </div>
+              <i className="fas fa-arrow-right text-rose-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+            <span className="mt-2 block text-xs text-gray-400">
+              Employer expos, digital passes, and company booth recruitment.
             </span>
           </Link>
         </div>
@@ -541,11 +580,10 @@ export default async function StudentDashboardPage() {
                   actionLabel: "Take Assessments",
                   note: "Diagnostic scoring & exams",
                 },
-                mentorship: {
-                  href: "#appointments-section",
-                  actionLabel: "Coming Soon",
-                  comingSoon: true,
-                  note: "Alumni & Industry Mentor Pairing",
+                "career-fair": {
+                  href: "/dashboard/career-fair",
+                  actionLabel: "Explore Career Fairs",
+                  note: "Employer booths & digital passes",
                 },
               };
 

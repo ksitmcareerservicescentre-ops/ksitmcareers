@@ -6,6 +6,7 @@ import { type JobPostingItem } from "@/actions/jobs";
 import {
   type JobRecommendationRow,
   markStudentAppliedAction,
+  requestJobParticipationAction,
 } from "@/actions/employers";
 
 const orangeButton =
@@ -69,8 +70,15 @@ export function StudentJobsView({
   const [actionErr, setActionErr] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  // Set of recommended job IDs
-  const recommendedJobIds = new Set(recommendations.map((r) => r.jobId));
+  // Map of job recommendations/requests by jobId
+  const recMap = new Map(recommendations.map((r) => [r.jobId, r]));
+
+  // Set of recommended job IDs where student is authorized to apply
+  const recommendedJobIds = new Set(
+    recommendations
+      .filter((r) => r.status === "RECOMMENDED" || r.status === "APPLIED" || r.status === "IN_PROGRESS" || r.status === "COMPLETED")
+      .map((r) => r.jobId),
+  );
 
   const filteredJobs = jobs.filter((j) => {
     if (!j.isPublished) return false;
@@ -86,6 +94,49 @@ export function StudentJobsView({
     }
     return true;
   });
+
+  const handleRequestJob = (job: JobPostingItem, note?: string) => {
+    setActionMsg("");
+    setActionErr("");
+    startTransition(async () => {
+      const res = await requestJobParticipationAction(job.id, note);
+      if (res.success) {
+        setActionMsg(`Request to participate in "${job.title}" submitted to Career Services!`);
+        const newRec: JobRecommendationRow = {
+          id: res.recommendationId || String(Date.now()),
+          jobId: job.id,
+          jobTitle: job.title,
+          companyName: job.companyName,
+          natureOfWork: job.natureOfWork,
+          duration: job.duration,
+          studentId: "self",
+          studentName,
+          studentRegNumber: regNumber,
+          studentDepartment: department,
+          studentLevel: "ND/HND",
+          studentAvatarUrl: null,
+          recommendedByUserId: null,
+          recommenderName: "Self Request",
+          recommenderDesignation: null,
+          recommendationReason: note || "Student requested participation permission.",
+          supervisorUserId: null,
+          supervisorName: null,
+          status: "REQUESTED",
+          supervisionNotes: "Pending Career Staff / Admin approval.",
+          statusUpdateReason: null,
+          startDate: null,
+          endDate: null,
+          performanceRating: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        setRecommendations((prev) => [newRec, ...prev.filter((r) => r.jobId !== job.id)]);
+        setTimeout(() => setActionMsg(""), 6000);
+      } else {
+        setActionErr(res.error || "Failed to submit request.");
+      }
+    });
+  };
 
   const handleMarkApplied = (recId: string) => {
     setActionMsg("");
@@ -590,25 +641,78 @@ export function StudentJobsView({
                         <span>View Specs</span>
                       </button>
 
-                      {job.applicationUrl ? (
-                        <a
-                          href={job.applicationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={orangeButton}
-                        >
-                          <span>Apply</span>
-                          <i className="fas fa-arrow-right text-[10px]" />
-                        </a>
-                      ) : job.contactEmail ? (
-                        <a
-                          href={`mailto:${job.contactEmail}?subject=Application%20for%20${encodeURIComponent(job.title)}`}
-                          className={orangeButton}
-                        >
-                          <span>Email</span>
-                          <i className="fas fa-envelope text-[10px]" />
-                        </a>
-                      ) : null}
+                      {(() => {
+                        const rec = recMap.get(job.id);
+                        const isAuthorized =
+                          rec &&
+                          (rec.status === "RECOMMENDED" ||
+                            rec.status === "APPLIED" ||
+                            rec.status === "IN_PROGRESS" ||
+                            rec.status === "COMPLETED");
+
+                        if (isAuthorized) {
+                          if (job.applicationUrl) {
+                            return (
+                              <a
+                                href={job.applicationUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={orangeButton}
+                              >
+                                <span>Apply</span>
+                                <i className="fas fa-arrow-right text-[10px]" />
+                              </a>
+                            );
+                          }
+                          if (job.contactEmail) {
+                            return (
+                              <a
+                                href={`mailto:${job.contactEmail}?subject=Application%20for%20${encodeURIComponent(job.title)}`}
+                                className={orangeButton}
+                              >
+                                <span>Email</span>
+                                <i className="fas fa-envelope text-[10px]" />
+                              </a>
+                            );
+                          }
+                          return null;
+                        }
+
+                        if (rec?.status === "REQUESTED") {
+                          return (
+                            <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                              <i className="fas fa-hourglass-half" />
+                              <span>Under Review</span>
+                            </span>
+                          );
+                        }
+
+                        if (rec?.status === "REJECTED") {
+                          return (
+                            <button
+                              type="button"
+                              disabled={isPending}
+                              onClick={() => handleRequestJob(job)}
+                              className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-300 hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <i className="fas fa-redo" />
+                              <span>Request Again</span>
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <button
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => handleRequestJob(job)}
+                            className={orangeButton}
+                          >
+                            <i className="fas fa-hand-paper" />
+                            <span>Request to Participate</span>
+                          </button>
+                        );
+                      })()}
                     </div>
                   </article>
                 );
@@ -623,6 +727,12 @@ export function StudentJobsView({
         <StudentJobDetailsModal
           job={selectedJob}
           isRecommended={recommendedJobIds.has(selectedJob.id)}
+          recommendation={recMap.get(selectedJob.id)}
+          onRequest={() => {
+            const j = selectedJob;
+            setSelectedJob(null);
+            handleRequestJob(j);
+          }}
           onClose={() => setSelectedJob(null)}
         />
       )}
@@ -633,10 +743,14 @@ export function StudentJobsView({
 function StudentJobDetailsModal({
   job,
   isRecommended,
+  recommendation,
+  onRequest,
   onClose,
 }: {
   job: JobPostingItem;
   isRecommended: boolean;
+  recommendation?: JobRecommendationRow;
+  onRequest: () => void;
   onClose: () => void;
 }) {
   return (
@@ -791,26 +905,74 @@ function StudentJobDetailsModal({
           </div>
 
           <div className="flex items-center gap-3">
-            {job.applicationUrl && (
-              <a
-                href={job.applicationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={orangeButton}
-              >
-                <i className="fas fa-external-link-alt" />
-                <span>Visit Application Portal</span>
-              </a>
-            )}
-            {job.contactEmail && (
-              <a
-                href={`mailto:${job.contactEmail}?subject=Application%20for%20${encodeURIComponent(job.title)}`}
-                className={secondaryButton}
-              >
-                <i className="fas fa-envelope" />
-                <span>Contact Recruiter</span>
-              </a>
-            )}
+            {(() => {
+              const isAuthorized =
+                recommendation &&
+                (recommendation.status === "RECOMMENDED" ||
+                  recommendation.status === "APPLIED" ||
+                  recommendation.status === "IN_PROGRESS" ||
+                  recommendation.status === "COMPLETED");
+
+              if (isAuthorized) {
+                return (
+                  <>
+                    {job.applicationUrl && (
+                      <a
+                        href={job.applicationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={orangeButton}
+                      >
+                        <i className="fas fa-external-link-alt" />
+                        <span>Visit Application Portal</span>
+                      </a>
+                    )}
+                    {job.contactEmail && (
+                      <a
+                        href={`mailto:${job.contactEmail}?subject=Application%20for%20${encodeURIComponent(job.title)}`}
+                        className={secondaryButton}
+                      >
+                        <i className="fas fa-envelope" />
+                        <span>Contact Recruiter</span>
+                      </a>
+                    )}
+                  </>
+                );
+              }
+
+              if (recommendation?.status === "REQUESTED") {
+                return (
+                  <span className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <i className="fas fa-hourglass-half" />
+                    <span>Participation Request Under Review</span>
+                  </span>
+                );
+              }
+
+              if (recommendation?.status === "REJECTED") {
+                return (
+                  <button
+                    type="button"
+                    onClick={onRequest}
+                    className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-bold text-rose-300 hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <i className="fas fa-redo" />
+                    <span>Request Again</span>
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  type="button"
+                  onClick={onRequest}
+                  className={orangeButton}
+                >
+                  <i className="fas fa-hand-paper" />
+                  <span>Request to Participate</span>
+                </button>
+              );
+            })()}
           </div>
         </div>
       </div>

@@ -2,8 +2,8 @@ import * as dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 import { neon } from "@neondatabase/serverless";
 
-const userDbUrl = "postgresql://neondb_owner:npg_fYL5dnDXwaE4@ep-restless-grass-b2wbgjl5-pooler.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
-const currentAppDbUrl = process.env.DATABASE_URL;
+const userDbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const currentAppDbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
 const sqlNeon = neon(userDbUrl);
 const sqlApp = neon(currentAppDbUrl);

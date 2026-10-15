@@ -20,15 +20,14 @@ import { JobBoardWorkspace } from "@/components/admin/job-board-workspace";
 import { EmployerEngagementWorkspace } from "@/components/admin/employer-engagement-workspace";
 import { StudentsWorkspace } from "@/components/admin/students-workspace";
 import { AppointmentSchedulerWorkspace } from "@/components/admin/appointment-scheduler-workspace";
+import { CareerFairWorkspace } from "@/components/admin/career-fair-workspace";
+import { LandingCmsWorkspace } from "@/components/admin/landing-cms-workspace";
+import { VideoCenterWorkspace } from "@/components/admin/video-center-workspace";
+import { GalleryWorkspace } from "@/components/admin/gallery-workspace";
+import { LeadershipWorkspace } from "@/components/admin/leadership-workspace";
+import { AnnouncementsWorkspace } from "@/components/admin/announcements-workspace";
 import { ProfileSettingsModal } from "@/components/profile/profile-settings-modal";
 import { moduleCatalog } from "@/lib/modules";
-import {
-  createLandingContentAction,
-  deleteLandingContentAction,
-  deleteTrainingVideoAction,
-  updateLandingContentAction,
-  updateTrainingVideoAction,
-} from "@/actions/admin";
 
 type Appointment = {
   id: string;
@@ -125,84 +124,6 @@ type NavItem = {
   submenus?: SubmenuItem[];
 };
 
-const orangeButton =
-  "rounded-xl bg-[#FF7F24] px-4 py-2.5 text-xs font-extrabold text-[#0A0A1A] transition hover:bg-[#40297B] hover:text-white disabled:opacity-50";
-const input =
-  "w-full rounded-xl border border-white/10 bg-white/[.06] px-3 py-2.5 text-sm text-white outline-none focus:border-[#FF7F24]";
-
-function ContentForm({
-  kind,
-  title,
-  fields,
-}: {
-  kind: string;
-  title: string;
-  fields: {
-    name: string;
-    label: string;
-    textarea?: boolean;
-    required?: boolean;
-  }[];
-}) {
-  const [state, action, pending] = useActionState(
-    async (_: { success?: boolean; error?: string } | null, data: FormData) =>
-      createLandingContentAction(data),
-    null,
-  );
-  return (
-    <form
-      action={action}
-      className="rounded-2xl border border-white/10 bg-[#101023] p-5 space-y-3"
-    >
-      <input type="hidden" name="kind" value={kind} />
-      <div>
-        <h3 className="font-bold text-white">{title}</h3>
-        <p className="mt-1 text-xs text-gray-500">
-          Changes are saved to the CMS and published content can be updated
-          without a deployment.
-        </p>
-      </div>
-      {fields.map((field) => (
-        <label
-          key={field.name}
-          className="block text-xs font-semibold text-gray-300"
-        >
-          {field.label}
-          {field.textarea ? (
-            <textarea
-              name={field.name}
-              required={field.required}
-              className={`${input} mt-1 min-h-20`}
-            />
-          ) : (
-            <input
-              name={field.name}
-              required={field.required}
-              className={`${input} mt-1`}
-            />
-          )}
-        </label>
-      ))}
-      <label className="flex items-center gap-2 text-xs text-gray-300">
-        <input
-          type="checkbox"
-          name="isPublished"
-          defaultChecked
-          className="accent-[#FF7F24]"
-        />{" "}
-        Publish immediately
-      </label>
-      {state?.error && <p className="text-xs text-red-300">{state.error}</p>}
-      {state?.success && (
-        <p className="text-xs text-emerald-300">Saved successfully.</p>
-      )}
-      <button className={orangeButton} disabled={pending}>
-        {pending ? "Saving..." : "Save"}
-      </button>
-    </form>
-  );
-}
-
 export function AdminControlCenter({
   appointments,
   gallery,
@@ -226,11 +147,27 @@ export function AdminControlCenter({
 }) {
   const [active, setActive] = useState(() => {
     if (defaultTab === "assessments" || defaultTab === "readiness") return "modules";
-    return defaultTab || "modules";
+    if (
+      defaultTab === "services" ||
+      defaultTab === "website" ||
+      defaultTab === "gallery" ||
+      defaultTab === "leadership" ||
+      defaultTab === "announcements"
+    )
+      return "website";
+    if (defaultTab === "training" || defaultTab === "employers") return "modules";
+    return defaultTab || "overview";
   });
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(() => {
     if (defaultTab === "assessments" || defaultTab === "readiness") return "readiness";
-    return "readiness";
+    if (defaultTab === "services") return "services";
+    if (defaultTab === "training") return "training";
+    if (defaultTab === "employers") return "employers";
+    if (defaultTab === "modules") return "readiness";
+    if (defaultTab === "leadership") return "leadership";
+    if (defaultTab === "announcements") return "announcements";
+    if (defaultTab === "gallery" || defaultTab === "website") return "gallery";
+    return null;
   });
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [pinnedMenu, setPinnedMenu] = useState<string | null>(null);
@@ -280,10 +217,10 @@ export function AdminControlCenter({
 
   const MODULE_ICONS: Record<string, string> = {
     readiness: "fa-clipboard-check",
-    training: "fa-graduation-cap",
+    training: "fa-video",
     resume: "fa-file-alt",
     internship: "fa-laptop-code",
-    employers: "fa-handshake",
+    employers: "fa-building",
     jobs: "fa-briefcase",
     "career-fair": "fa-calendar-check",
     appointments: "fa-clock",
@@ -299,7 +236,7 @@ export function AdminControlCenter({
   const websiteSubmenus: SubmenuItem[] = [
     {
       id: "gallery",
-      label: "Campus Gallery",
+      label: "Gallery",
       icon: "fa-images",
     },
     {
@@ -312,6 +249,26 @@ export function AdminControlCenter({
       label: "Updates & Announcements",
       icon: "fa-bullhorn",
     },
+    {
+      id: "hero",
+      label: "Hero Slideshow",
+      icon: "fa-photo-film",
+    },
+    {
+      id: "services",
+      label: "Career Services",
+      icon: "fa-briefcase",
+    },
+    {
+      id: "testimonials",
+      label: "What Students Say",
+      icon: "fa-comment-dots",
+    },
+    {
+      id: "footer",
+      label: "Footer & Contact",
+      icon: "fa-table-cells-row-unlock",
+    },
   ];
 
   const staffSubmenus: SubmenuItem[] = [
@@ -323,6 +280,7 @@ export function AdminControlCenter({
   ];
 
   const nav: NavItem[] = [
+    { id: "overview", icon: "fa-chart-line", label: "Overview" },
     {
       id: "modules",
       icon: "fa-layer-group",
@@ -336,7 +294,6 @@ export function AdminControlCenter({
       label: "Students",
       badge: String(students.length),
     },
-    { id: "overview", icon: "fa-chart-line", label: "Overview" },
     {
       id: "staff",
       icon: "fa-user-tie",
@@ -344,23 +301,12 @@ export function AdminControlCenter({
       submenus: staffSubmenus,
     },
     {
-      id: "appointments",
-      icon: "fa-calendar-check",
-      label: "Appointment Scheduler",
-    },
-    {
       id: "website",
       icon: "fa-window-maximize",
       label: "Landing page",
+      badge: "7",
       submenus: websiteSubmenus,
     },
-    { id: "services", icon: "fa-briefcase", label: "Career services" },
-    {
-      id: "opportunities",
-      icon: "fa-laptop-house",
-      label: "Internships & jobs",
-    },
-    { id: "employers", icon: "fa-building", label: "Employer engagement" },
   ];
 
   const handleMenuEnter = (id: string, hasSubmenus: boolean) => {
@@ -395,6 +341,10 @@ export function AdminControlCenter({
       setHoveredMenu(id);
       if (id === "modules") {
         setActiveSubmenu(null);
+      } else if (id === "website") {
+        setActiveSubmenu((prev) =>
+          prev && websiteSubmenus.some((s) => s.id === prev) ? prev : "gallery",
+        );
       }
     } else {
       setPinnedMenu(null);
@@ -861,7 +811,7 @@ export function AdminControlCenter({
           activeSubmenu === "readiness" ? (
             <AssessmentWorkspace />
           ) : activeSubmenu === "training" ? (
-            <EmployabilityWorkspace />
+            <VideoCenterWorkspace initialVideos={training} />
           ) : activeSubmenu === "resume" ? (
             <ResumeBuilderWorkspace />
           ) : activeSubmenu === "internship" ? (
@@ -870,6 +820,10 @@ export function AdminControlCenter({
             <JobBoardWorkspace />
           ) : activeSubmenu === "employers" ? (
             <EmployerEngagementWorkspace />
+          ) : activeSubmenu === "career-fair" ? (
+            <CareerFairWorkspace />
+          ) : activeSubmenu === "appointments" ? (
+            <AppointmentSchedulerWorkspace officers={officers} />
           ) : (
             <ModulesWorkspace
               activeModuleSlug={activeSubmenu}
@@ -937,29 +891,33 @@ export function AdminControlCenter({
               {[
                 [
                   "Website CMS",
-                  "Edit landing page sections, gallery, leadership and updates",
+                  "Manage hero slides, services, testimonials, gallery, leadership & footer",
                   "website",
                 ],
                 [
+                  "Video Center",
+                  "Manage video curriculum, masterclasses and skills training",
+                  "training",
+                ],
+                [
                   "Appointments",
-                  `${appointments.length} requests and scheduled sessions`,
+                  `${appointments.length} student consultations and scheduler`,
                   "appointments",
                 ],
                 [
-                  "Student services",
-                  "Approve attendance and activate career tools",
-                  "services",
+                  "Employer Engagement",
+                  "Track company partners, recruiters and engagement linkages",
+                  "employers",
                 ],
-                ["Training videos", "Manage learning videos", "training"],
                 [
                   "Job Readiness Assessment",
-                  "Build readiness questions and objective examinations",
+                  "Benchmark student competencies across 8 institutional pillars",
                   "readiness",
                 ],
                 [
-                  "Opportunities",
-                  "Publish internships, jobs and career fairs",
-                  "opportunities",
+                  "Career Opportunities",
+                  "Review and publish student internships and job listings",
+                  "jobs",
                 ],
               ].map(([title, description, id]) => (
                 <button
@@ -968,6 +926,21 @@ export function AdminControlCenter({
                     if (id === "readiness") {
                       setActive("modules");
                       setActiveSubmenu("readiness");
+                    } else if (id === "training") {
+                      setActive("modules");
+                      setActiveSubmenu("training");
+                    } else if (id === "appointments") {
+                      setActive("modules");
+                      setActiveSubmenu("appointments");
+                    } else if (id === "employers") {
+                      setActive("modules");
+                      setActiveSubmenu("employers");
+                    } else if (id === "jobs") {
+                      setActive("modules");
+                      setActiveSubmenu("jobs");
+                    } else if (id === "website") {
+                      setActive("website");
+                      setActiveSubmenu("gallery");
                     } else {
                       setActive(id);
                     }
@@ -1091,167 +1064,21 @@ export function AdminControlCenter({
           </div>
         )}
         {active === "website" && (
-          <div className="space-y-8">
-            <div className="grid gap-5 xl:grid-cols-3">
-              <CreateCard
-                title="Gallery"
-                count={gallery.length}
-                onClick={() =>
-                  setCreateSection(
-                    createSection === "gallery" ? null : "gallery",
-                  )
-                }
-              />{" "}
-              <CreateCard
-                title="Leadership"
-                count={leadership.length}
-                onClick={() =>
-                  setCreateSection(
-                    createSection === "leadership" ? null : "leadership",
-                  )
-                }
-              />{" "}
-              <CreateCard
-                title="Updates"
-                count={announcements.length}
-                onClick={() =>
-                  setCreateSection(
-                    createSection === "announcement" ? null : "announcement",
-                  )
-                }
-              />
-            </div>
-            {createSection === "gallery" && (
-              <ContentForm
-                kind="gallery"
-                title="Create gallery item"
-                fields={[
-                  { name: "title", label: "Title", required: true },
-                  { name: "imageUrl", label: "Image URL", required: true },
-                  { name: "imageAlt", label: "Alt text" },
-                  {
-                    name: "caption",
-                    label: "Caption",
-                    textarea: true,
-                    required: true,
-                  },
-                ]}
-              />
-            )}
-            {createSection === "leadership" && (
-              <ContentForm
-                kind="leadership"
-                title="Create leadership profile"
-                fields={[
-                  { name: "name", label: "Name", required: true },
-                  { name: "position", label: "Position", required: true },
-                  {
-                    name: "imageUrl",
-                    label: "Profile image URL",
-                    required: true,
-                  },
-                  {
-                    name: "summary",
-                    label: "Short biography",
-                    textarea: true,
-                    required: true,
-                  },
-                  {
-                    name: "biography",
-                    label: "Full biography (one paragraph per line)",
-                    textarea: true,
-                    required: true,
-                  },
-                ]}
-              />
-            )}
-            {createSection === "announcement" && (
-              <ContentForm
-                kind="announcement"
-                title="Create update"
-                fields={[
-                  { name: "title", label: "Title", required: true },
-                  { name: "summary", label: "Summary", required: true },
-                  {
-                    name: "content",
-                    label: "Content",
-                    textarea: true,
-                    required: true,
-                  },
-                  { name: "imageUrl", label: "Optional image URL" },
-                ]}
-              />
-            )}
-            <LandingContentCrud
-              gallery={gallery}
-              leadership={leadership}
-              announcements={announcements}
+          (activeSubmenu === "gallery" || (!activeSubmenu && defaultTab === "website")) ? (
+            <GalleryWorkspace initialGallery={gallery} />
+          ) : activeSubmenu === "leadership" ? (
+            <LeadershipWorkspace initialLeadership={leadership} />
+          ) : activeSubmenu === "announcements" ? (
+            <AnnouncementsWorkspace initialAnnouncements={announcements} />
+          ) : (
+            <LandingCmsWorkspace
+              initialActiveTab={activeSubmenu || "hero"}
+              onTabChange={(tab) => setActiveSubmenu(tab)}
             />
-          </div>
-        )}
-        {active === "services" && (
-          <div className="grid gap-5 xl:grid-cols-2">
-            <ContentForm
-              kind="service"
-              title="Add career service"
-              fields={[
-                { name: "title", label: "Service name", required: true },
-                { name: "slug", label: "Slug", required: true },
-                { name: "summary", label: "Summary", required: true },
-                { name: "description", label: "Description", textarea: true },
-                { name: "icon", label: "Font Awesome icon (e.g. fa-file-alt)" },
-              ]}
-            />
-            <div className="rounded-2xl border border-white/10 bg-[#101023] p-5">
-              <h3 className="font-bold text-white">Service access rule</h3>
-              <p className="mt-2 text-sm leading-6 text-gray-400">
-                Career staff assess each student. Super Admin can review the
-                resulting entitlements from the staff workspace. Approved
-                attendance can activate the student’s remaining career services.
-              </p>
-              <button
-                onClick={() => setActive("appointments")}
-                className={`${orangeButton} mt-4`}
-              >
-                Review attendance
-              </button>
-            </div>
-          </div>
+          )
         )}
         {active === "training" && (
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-gray-400">
-                Add YouTube videos or HTTPS-hosted MP4/WebM files. Students
-                receive the same learning library after access is activated.
-              </p>
-              <Link href="/training/preview" className={orangeButton}>
-                Open video center
-              </Link>
-            </div>
-            <ContentForm
-              kind="training"
-              title="Add learning video"
-              fields={[
-                { name: "title", label: "Video title", required: true },
-                { name: "category", label: "Category", required: true },
-                {
-                  name: "videoUrl",
-                  label: "YouTube or direct video URL",
-                  required: true,
-                },
-                { name: "thumbnailUrl", label: "Optional thumbnail URL" },
-                { name: "instructor", label: "Instructor" },
-                {
-                  name: "description",
-                  label: "Description",
-                  textarea: true,
-                  required: true,
-                },
-              ]}
-            />
-            <TrainingCrud items={training} />
-          </div>
+          <VideoCenterWorkspace initialVideos={training} />
         )}
         {active === "appointments" && (
           <AppointmentSchedulerWorkspace officers={officers} />
@@ -1268,429 +1095,5 @@ export function AdminControlCenter({
   );
 }
 
-function CreateCard({
-  title,
-  count,
-  onClick,
-}: {
-  title: string;
-  count: number;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-2xl border border-white/10 bg-[#101023] p-5 text-left transition hover:border-[#FF7F24]/60 hover:bg-[#40297B]"
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-extrabold text-white">{title}</span>
-        <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-bold text-[#FF7F24]">
-          {count} records
-        </span>
-      </div>
-      <span className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-[#FF7F24]">
-        Create new <i className="fas fa-plus" />
-      </span>
-    </button>
-  );
-}
 
-function TrainingCrud({ items }: { items: TrainingVideo[] }) {
-  const [editing, setEditing] = useState<string | null>(null);
-  const [deleting, startDelete] = useTransition();
-  return (
-    <section className="rounded-2xl border border-white/10 bg-[#101023] p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-bold text-white">
-            Learning videos ({items.length})
-          </h3>
-          <p className="mt-1 text-xs text-gray-400">
-            Edit, publish or remove student training records.
-          </p>
-        </div>
-      </div>
-      <div className="mt-4 grid gap-4 xl:grid-cols-2">
-        {items.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-white/10 p-6 text-sm text-gray-500">
-            No learning videos have been added.
-          </p>
-        ) : (
-          items.map((item) =>
-            editing === item.id ? (
-              <form
-                key={item.id}
-                action={async (data) => {
-                  const result = await updateTrainingVideoAction(data);
-                  if (result.success) setEditing(null);
-                }}
-                className="space-y-3 rounded-xl border border-[#FF7F24]/40 bg-[#0A0A1A] p-4"
-              >
-                <input type="hidden" name="id" value={item.id} />
-                <Field name="title" label="Title" value={item.title} />
-                <Field
-                  name="videoUrl"
-                  label="YouTube or direct video URL"
-                  value={item.videoUrl}
-                />
-                <Field
-                  name="thumbnailUrl"
-                  label="Thumbnail URL"
-                  value={item.thumbnailUrl || ""}
-                />
-                <Field
-                  name="instructor"
-                  label="Instructor"
-                  value={item.instructor || ""}
-                />
-                <Field
-                  name="description"
-                  label="Description"
-                  value={item.description}
-                  textarea
-                />
-                <label className="flex items-center gap-2 text-xs text-gray-300">
-                  <input
-                    type="checkbox"
-                    name="isPublished"
-                    defaultChecked={item.isPublished}
-                    className="accent-[#FF7F24]"
-                  />{" "}
-                  Published
-                </label>
-                <div className="flex gap-2">
-                  <button className={orangeButton}>Save changes</button>
-                  <button
-                    type="button"
-                    onClick={() => setEditing(null)}
-                    className="rounded-xl border border-white/15 px-4 py-2 text-xs font-bold text-gray-300"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <article
-                key={item.id}
-                className="overflow-hidden rounded-xl border border-white/10 bg-white/[.03]"
-              >
-                {item.thumbnailUrl || item.videoProvider === "youtube" ? (
-                  <Image
-                    src={
-                      item.thumbnailUrl ||
-                      `https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg`
-                    }
-                    alt=""
-                    width={640}
-                    height={360}
-                    className="aspect-video w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex aspect-video items-center justify-center bg-black text-gray-400">
-                    Video
-                  </div>
-                )}
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h4 className="font-bold text-white">{item.title}</h4>
-                      <p className="mt-1 text-xs text-gray-400">
-                        {item.categoryName}
-                        {item.instructor ? ` · ${item.instructor}` : ""}
-                      </p>
-                    </div>
-                    <span
-                      className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${item.isPublished ? "bg-emerald-500/10 text-emerald-300" : "bg-white/10 text-gray-400"}`}
-                    >
-                      {item.isPublished ? "Published" : "Draft"}
-                    </span>
-                  </div>
-                  <p className="mt-3 line-clamp-2 text-xs text-gray-400">
-                    {item.description}
-                  </p>
-                  <div className="mt-4 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditing(item.id)}
-                      className="rounded-lg border border-[#FF7F24]/40 px-3 py-1.5 text-xs font-bold text-[#FF7F24]"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      disabled={deleting}
-                      onClick={() => {
-                        if (window.confirm("Delete this training video?"))
-                          startDelete(() => {
-                            void deleteTrainingVideoAction(item.id);
-                          });
-                      }}
-                      className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-bold text-red-300"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ),
-          )
-        )}
-      </div>
-    </section>
-  );
-}
 
-function LandingContentCrud({
-  gallery,
-  leadership,
-  announcements,
-}: {
-  gallery: Gallery[];
-  leadership: Leader[];
-  announcements: Announcement[];
-}) {
-  return (
-    <div className="space-y-6">
-      <CrudGroup
-        title={`Gallery (${gallery.length})`}
-        kind="gallery"
-        items={gallery}
-      />
-      <CrudGroup
-        title={`Leadership (${leadership.length})`}
-        kind="leadership"
-        items={leadership}
-      />
-      <CrudGroup
-        title={`Updates (${announcements.length})`}
-        kind="announcement"
-        items={announcements}
-      />
-    </div>
-  );
-}
-
-function CrudGroup({
-  title,
-  kind,
-  items,
-}: {
-  title: string;
-  kind: string;
-  items: (Gallery | Leader | Announcement)[];
-}) {
-  return (
-    <section className="rounded-2xl border border-white/10 bg-[#101023] p-5">
-      <h2 className="text-lg font-extrabold text-white">{title}</h2>
-      {items.length === 0 ? (
-        <p className="mt-3 rounded-xl border border-dashed border-white/10 p-6 text-sm text-gray-500">
-          No records yet. Use the creation form above.
-        </p>
-      ) : (
-        <div className="mt-4 grid gap-4 xl:grid-cols-2">
-          {items.map((item) => (
-            <EditableContent key={item.id} kind={kind} item={item} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function EditableContent({
-  kind,
-  item,
-}: {
-  kind: string;
-  item: Gallery | Leader | Announcement;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [state, action, pending] = useActionState(
-    async (_: { success?: boolean; error?: string } | null, data: FormData) => {
-      const result = await updateLandingContentAction(data);
-      if (result.success) setEditing(false);
-      return result;
-    },
-    null,
-  );
-  const [deleting, startDelete] = useTransition();
-  const leader = kind === "leadership" ? (item as Leader) : null;
-  const gallery = kind === "gallery" ? (item as Gallery) : null;
-  const announcement = kind === "announcement" ? (item as Announcement) : null;
-  const biography = leader
-    ? Array.isArray(leader.biography)
-      ? leader.biography.join("\n")
-      : String(leader.biography || "")
-    : "";
-  const remove = () => {
-    if (window.confirm("Delete this public content?"))
-      startDelete(async () => {
-        await deleteLandingContentAction(kind, item.id);
-      });
-  };
-  if (!editing)
-    return (
-      <article className="overflow-hidden rounded-xl border border-white/10 bg-white/[.03]">
-        <div className="flex items-start gap-4 p-4">
-          {gallery && (
-            <Image
-              src={gallery.imageUrl}
-              alt={gallery.imageAlt}
-              width={96}
-              height={80}
-              className="h-20 w-24 shrink-0 rounded-lg border border-white/10 object-cover"
-            />
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-white">
-                  {gallery?.title || leader?.name || announcement?.title}
-                </h3>
-                <p className="mt-1 line-clamp-2 text-xs text-gray-400">
-                  {gallery?.caption ||
-                    leader?.position ||
-                    announcement?.summary}
-                </p>
-                <span
-                  className={`mt-3 inline-flex rounded-full px-2 py-1 text-[10px] font-bold uppercase ${item.isPublished ? "bg-emerald-500/10 text-emerald-300" : "bg-white/10 text-gray-400"}`}
-                >
-                  {item.isPublished ? "Published" : "Draft"}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setEditing(true)}
-                  className="rounded-lg border border-[#FF7F24]/40 px-3 py-1.5 text-xs font-bold text-[#FF7F24] hover:bg-[#40297B] hover:text-white"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={remove}
-                  disabled={deleting}
-                  className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-bold text-red-300 hover:bg-red-500/20"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </article>
-    );
-  return (
-    <form
-      action={action}
-      className="rounded-xl border border-[#FF7F24]/40 bg-[#0A0A1A] p-4 space-y-3"
-    >
-      <input type="hidden" name="id" value={item.id} />
-      <input type="hidden" name="kind" value={kind} />
-      {kind === "gallery" && (
-        <>
-          <Field name="title" label="Title" value={gallery?.title} />
-          <Field name="imageUrl" label="Image URL" value={gallery?.imageUrl} />
-          <Field name="imageAlt" label="Alt text" value={gallery?.imageAlt} />
-          <Field
-            name="caption"
-            label="Caption"
-            value={gallery?.caption}
-            textarea
-          />
-        </>
-      )}
-      {kind === "leadership" && (
-        <>
-          <Field name="name" label="Name" value={leader?.name} />
-          <Field name="position" label="Position" value={leader?.position} />
-          <Field name="imageUrl" label="Image URL" value={leader?.imageUrl} />
-          <Field name="imageAlt" label="Alt text" value={leader?.imageAlt} />
-          <Field
-            name="summary"
-            label="Summary"
-            value={leader?.summary}
-            textarea
-          />
-          <Field
-            name="biography"
-            label="Biography"
-            value={biography}
-            textarea
-          />
-        </>
-      )}
-      {kind === "announcement" && (
-        <>
-          <Field name="title" label="Title" value={announcement?.title} />
-          <Field name="summary" label="Summary" value={announcement?.summary} />
-          <Field
-            name="content"
-            label="Content"
-            value={announcement?.content}
-            textarea
-          />
-          <Field
-            name="imageUrl"
-            label="Image URL"
-            value={announcement?.imageUrl || ""}
-          />
-        </>
-      )}
-      <label className="flex items-center gap-2 text-xs text-gray-300">
-        <input
-          type="checkbox"
-          name="isPublished"
-          defaultChecked={item.isPublished}
-          className="accent-[#FF7F24]"
-        />{" "}
-        Published
-      </label>
-      {state?.error && <p className="text-xs text-red-300">{state.error}</p>}
-      <div className="flex gap-2">
-        <button disabled={pending} className={orangeButton}>
-          {pending ? "Saving..." : "Save changes"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setEditing(false)}
-          className="rounded-xl border border-white/15 px-4 py-2 text-xs font-bold text-gray-300 hover:bg-[#40297B] hover:text-white"
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function Field({
-  name,
-  label,
-  value,
-  textarea,
-}: {
-  name: string;
-  label: string;
-  value?: string;
-  textarea?: boolean;
-}) {
-  return (
-    <label className="block text-xs font-semibold text-gray-300">
-      {label}
-      {textarea ? (
-        <textarea
-          name={name}
-          defaultValue={value}
-          required
-          className={`${input} mt-1 min-h-16`}
-        />
-      ) : (
-        <input
-          name={name}
-          defaultValue={value}
-          required
-          className={`${input} mt-1`}
-        />
-      )}
-    </label>
-  );
-}

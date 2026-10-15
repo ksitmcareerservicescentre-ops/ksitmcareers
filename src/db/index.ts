@@ -9,8 +9,7 @@ if (!process.env.DATABASE_URL) {
   }
 }
 
-// Enable connection caching and resilient fetch with retries for serverless cold starts
-neonConfig.fetchConnectionCache = true;
+// Resilient fetch with retries for serverless cold starts
 const originalFetch = globalThis.fetch;
 if (originalFetch) {
   neonConfig.fetchFunction = async (

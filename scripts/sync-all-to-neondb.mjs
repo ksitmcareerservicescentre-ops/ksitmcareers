@@ -1,7 +1,11 @@
 import { neon } from "@neondatabase/serverless";
+import * as dotenv from "dotenv";
 
-const userDbUrl = "postgresql://neondb_owner:npg_fYL5dnDXwaE4@ep-restless-grass-b2wbgjl5-pooler.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
-const ksitmDbUrl = "postgresql://neondb_owner:npg_fYL5dnDXwaE4@ep-restless-grass-b2wbgjl5-pooler.c-6.eu-central-1.aws.neon.tech/ksitmcareers?sslmode=require&channel_binding=require";
+dotenv.config({ path: ".env.local" });
+dotenv.config();
+
+const userDbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const ksitmDbUrl = process.env.KSITM_DATABASE_URL || userDbUrl;
 
 const sqlNeon = neon(userDbUrl);
 const sqlKsitm = neon(ksitmDbUrl);

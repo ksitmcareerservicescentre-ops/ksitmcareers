@@ -345,6 +345,191 @@ export async function getStudentResumeAction(
   };
 }
 
+export type PublicResumeViewData = {
+  resume: ResumeProfileData;
+  student: {
+    fullName: string;
+    regNumber: string;
+    department: string | null;
+    level: string | null;
+    avatarUrl: string | null;
+  };
+};
+
+/**
+ * Public: Fetch student resume for shareable link without authentication
+ */
+export async function getPublicStudentResumeAction(
+  identifier: string,
+): Promise<PublicResumeViewData | null> {
+  try {
+    let studentId = identifier;
+
+    let [profile] = await db
+      .select()
+      .from(resumeProfiles)
+      .where(eq(resumeProfiles.studentId, studentId))
+      .limit(1);
+
+    if (!profile) {
+      const [byProfileId] = await db
+        .select()
+        .from(resumeProfiles)
+        .where(eq(resumeProfiles.id, identifier))
+        .limit(1);
+
+      if (byProfileId) {
+        profile = byProfileId;
+        studentId = byProfileId.studentId;
+      }
+    }
+
+    const [st] = await db
+      .select({
+        id: studentProfiles.id,
+        fullName: studentProfiles.fullName,
+        regNumber: studentProfiles.regNumber,
+        department: studentProfiles.department,
+        level: studentProfiles.level,
+        phone: studentProfiles.phone,
+        bio: studentProfiles.bio,
+        avatarUrl: studentProfiles.avatarUrl,
+        linkedInUrl: studentProfiles.linkedInUrl,
+        email: users.email,
+      })
+      .from(studentProfiles)
+      .innerJoin(users, eq(studentProfiles.userId, users.id))
+      .where(eq(studentProfiles.id, studentId))
+      .limit(1);
+
+    if (!st) return null;
+
+    if (!profile) {
+      const defaultResume: ResumeProfileData = {
+        studentId: st.id,
+        fullName: st.fullName,
+        headline: `${st.department || "Technology"} Specialist | KSITM Scholar`,
+        email: st.email,
+        phone: st.phone || "",
+        location: "Katsina, Nigeria",
+        websiteUrl: "",
+        linkedInUrl: st.linkedInUrl || "",
+        githubUrl: "",
+        professionalSummary:
+          st.bio ||
+          `Motivated ${st.department || "Computing"} scholar at Katsina State Institute of Technology and Management, equipped with strong analytical problem-solving and modern technical competencies.`,
+        template: "ats-clean",
+        accentColor: "#059669",
+        fontFamily: "sans",
+        education: [
+          {
+            institution:
+              "Katsina State Institute of Technology and Management (KSITM)",
+            qualification: "National Diploma (ND)",
+            fieldOfStudy: st.department || "Computer Science",
+            startDate: "2023",
+            endDate: "2025",
+            isCurrent: true,
+            grade: "Distinction Track",
+            displayOrder: 1,
+          },
+        ],
+        experience: [],
+        skills: [
+          { category: "TECHNICAL", name: "Problem Solving", proficiency: "ADVANCED", displayOrder: 1 },
+          { category: "TECHNICAL", name: "System Analysis", proficiency: "INTERMEDIATE", displayOrder: 2 },
+          { category: "SOFT_SKILLS", name: "Professional Communication", proficiency: "ADVANCED", displayOrder: 3 },
+        ],
+        projects: [],
+        certifications: [],
+      };
+
+      return {
+        resume: defaultResume,
+        student: {
+          fullName: st.fullName,
+          regNumber: st.regNumber,
+          department: st.department,
+          level: st.level,
+          avatarUrl: st.avatarUrl,
+        },
+      };
+    }
+
+    const meta = decodeSummaryWithMeta(profile.professionalSummary);
+
+    const [education, experience, skills, projects, certifications] =
+      await Promise.all([
+        db
+          .select()
+          .from(resumeEducation)
+          .where(eq(resumeEducation.resumeProfileId, profile.id))
+          .orderBy(asc(resumeEducation.displayOrder)),
+        db
+          .select()
+          .from(resumeExperience)
+          .where(eq(resumeExperience.resumeProfileId, profile.id))
+          .orderBy(asc(resumeExperience.displayOrder)),
+        db
+          .select()
+          .from(resumeSkills)
+          .where(eq(resumeSkills.resumeProfileId, profile.id))
+          .orderBy(asc(resumeSkills.displayOrder)),
+        db
+          .select()
+          .from(resumeProjects)
+          .where(eq(resumeProjects.resumeProfileId, profile.id))
+          .orderBy(asc(resumeProjects.displayOrder)),
+        db
+          .select()
+          .from(resumeCertifications)
+          .where(eq(resumeCertifications.resumeProfileId, profile.id))
+          .orderBy(asc(resumeCertifications.displayOrder)),
+      ]);
+
+    const resumeData: ResumeProfileData = {
+      id: profile.id,
+      studentId: profile.studentId,
+      fullName: profile.fullName,
+      headline: meta.headline,
+      email: profile.email,
+      phone: profile.phone || "",
+      location: profile.location || "",
+      websiteUrl: meta.websiteUrl,
+      linkedInUrl: meta.linkedInUrl,
+      githubUrl: meta.githubUrl,
+      professionalSummary: meta.summary,
+      template: meta.template,
+      accentColor: meta.accentColor,
+      fontFamily: meta.fontFamily,
+      education,
+      experience: experience.map((exp) => ({
+        ...exp,
+        description: exp.description || "",
+      })),
+      skills,
+      projects,
+      certifications,
+      createdAt: profile.createdAt,
+      updatedAt: profile.updatedAt,
+    };
+
+    return {
+      resume: resumeData,
+      student: {
+        fullName: st.fullName,
+        regNumber: st.regNumber,
+        department: st.department,
+        level: st.level,
+        avatarUrl: st.avatarUrl,
+      },
+    };
+  } catch (err) {
+    console.error("[getPublicStudentResumeAction] Error:", err);
+    return null;
+  }
+}
+
 /**
  * Save / Upsert a complete resume record
  */
